@@ -1,0 +1,19 @@
+# Build output
+/dist/
+
+# Generated PDF fixtures
+/tests/fixtures/*.pdf
+
+# Local environment and secrets
+/.env
+/.env.*
+!/.env.example
+
+# Common local artifacts
+node_modules/
+tmp/
+coverage/
+*.log
+.DS_Store
+__pycache__/
+*.py[cod]

@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out the tagged source
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Verify that the tag matches the package version
+        run: |
+          VERSION="$(node -p 'require("./package.json").version')"
+          test "v${VERSION}" = "${GITHUB_REF_NAME}"
+
+      - name: Enforce English-only tracked content
+        run: npm run check:english
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Build twice and verify reproducibility
+        run: |
+          npm run package
+          cp "dist/aitero-assistant-${GITHUB_REF_NAME#v}.xpi" /tmp/aitero-first.xpi
+          npm run package
+          cmp /tmp/aitero-first.xpi "dist/aitero-assistant-${GITHUB_REF_NAME#v}.xpi"
+          cd dist
+          sha256sum -c "aitero-assistant-${GITHUB_REF_NAME#v}.xpi.sha256"
+
+      - name: Create or update the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          XPI="dist/aitero-assistant-${VERSION}.xpi"
+          SHA="${XPI}.sha256"
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" "${XPI}" "${SHA}" --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" "${XPI}" "${SHA}" \
+              --verify-tag \
+              --generate-notes \
+              --title "AItero Assistant ${GITHUB_REF_NAME}"
+          fi

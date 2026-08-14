@@ -1,0 +1,424 @@
+.aitero-root,
+.aitero-root * {
+	box-sizing: border-box;
+}
+
+.aitero-root {
+	--aitero-accent: AccentColor;
+	--aitero-accent-soft: color-mix(in srgb, AccentColor 13%, transparent);
+	--aitero-accent-softer: color-mix(in srgb, AccentColor 7%, transparent);
+	--aitero-border: color-mix(in srgb, currentColor 13%, transparent);
+	--aitero-surface: color-mix(in srgb, currentColor 4%, transparent);
+	--aitero-surface-raised: color-mix(in srgb, currentColor 7%, transparent);
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	height: max(460px, calc(100vh - 142px));
+	min-height: 0;
+	padding: 4px 10px 10px;
+	overflow: hidden;
+	color: var(--fill-primary, inherit);
+	font: menu;
+}
+
+.aitero-host-section {
+	scroll-margin-top: 4px;
+}
+
+.aitero-context-bar {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 10px;
+	flex: 0 0 auto;
+	min-width: 0;
+	padding: 2px 2px 0;
+}
+
+.aitero-target {
+	min-width: 0;
+	overflow: hidden;
+	font-size: 0.9em;
+	font-weight: 600;
+	line-height: 1.3;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.aitero-empty-hint,
+.aitero-status {
+	font-size: 0.88em;
+	line-height: 1.4;
+	color: var(--fill-secondary, #66707a);
+}
+
+.aitero-warning,
+.aitero-error {
+	flex: 0 0 auto;
+	padding: 9px 11px;
+	border-radius: 9px;
+	line-height: 1.4;
+}
+
+.aitero-warning {
+	border: 1px solid color-mix(in srgb, #c58b00 32%, transparent);
+	color: color-mix(in srgb, #a66f00 80%, currentColor);
+	background: color-mix(in srgb, #e8ae00 12%, transparent);
+}
+
+.aitero-error {
+	border: 1px solid color-mix(in srgb, #d33d3d 30%, transparent);
+	color: color-mix(in srgb, #c52d2d 80%, currentColor);
+	background: color-mix(in srgb, #d33d3d 10%, transparent);
+}
+
+.aitero-chat-shell {
+	position: relative;
+	display: flex;
+	flex: 1 1 0;
+	min-height: 0;
+	overflow: hidden;
+	border: 1px solid var(--aitero-border);
+	border-radius: 12px;
+	background: var(--aitero-surface);
+}
+
+.aitero-conversation {
+	display: flex;
+	flex: 1 1 0;
+	flex-direction: column;
+	gap: 12px;
+	min-width: 0;
+	min-height: 0;
+	overflow-x: hidden;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding: 14px;
+	scrollbar-gutter: stable;
+}
+
+.aitero-conversation:focus-visible {
+	outline: 2px solid var(--aitero-accent);
+	outline-offset: -2px;
+}
+
+.aitero-empty-state {
+	display: flex;
+	flex: 1 0 auto;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	min-height: 190px;
+	padding: 22px 10px;
+	text-align: center;
+}
+
+.aitero-empty-icon {
+	display: grid;
+	place-items: center;
+	width: 38px;
+	height: 38px;
+	margin-bottom: 10px;
+	border: 1px solid color-mix(in srgb, AccentColor 25%, transparent);
+	border-radius: 12px;
+	color: var(--aitero-accent);
+	background: var(--aitero-accent-soft);
+	font-size: 19px;
+}
+
+.aitero-empty-title {
+	font-weight: 650;
+}
+
+.aitero-empty-hint {
+	max-width: 31em;
+	margin-top: 4px;
+}
+
+.aitero-suggestions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 6px;
+	margin-top: 14px;
+}
+
+.aitero-message {
+	position: relative;
+	max-width: 94%;
+	padding: 10px 12px;
+	border: 1px solid transparent;
+	border-radius: 13px;
+	line-height: 1.52;
+	overflow-wrap: anywhere;
+	white-space: pre-wrap;
+}
+
+.aitero-message-user {
+	align-self: flex-end;
+	max-width: 88%;
+	border-end-end-radius: 5px;
+	color: color-mix(in srgb, currentColor 94%, AccentColor);
+	background: var(--aitero-accent-soft);
+}
+
+.aitero-message-assistant {
+	align-self: stretch;
+	max-width: 100%;
+	padding: 2px 1px 8px;
+	white-space: pre-wrap;
+}
+
+.aitero-message-incomplete {
+	opacity: 0.78;
+	border-inline-start: 3px solid #b77900;
+}
+
+.aitero-response-heading {
+	margin: 15px 0 7px;
+	font-size: 1.02em;
+	font-weight: 700;
+	line-height: 1.3;
+}
+
+.aitero-response-heading:first-child {
+	margin-top: 0;
+}
+
+.aitero-response-paragraph {
+	margin: 7px 0;
+	white-space: normal;
+}
+
+.aitero-response-list {
+	margin: 7px 0;
+	padding-inline-start: 21px;
+	white-space: normal;
+}
+
+.aitero-response-list li {
+	margin: 5px 0;
+	padding-inline-start: 2px;
+}
+
+.aitero-table-wrap {
+	max-width: 100%;
+	margin: 9px 0;
+	overflow-x: auto;
+	border: 1px solid var(--aitero-border);
+	border-radius: 9px;
+	white-space: normal;
+}
+
+.aitero-response-table {
+	width: 100%;
+	min-width: 430px;
+	border-collapse: collapse;
+	font-size: 0.92em;
+}
+
+.aitero-response-table th,
+.aitero-response-table td {
+	padding: 8px 9px;
+	border-bottom: 1px solid var(--aitero-border);
+	vertical-align: top;
+	text-align: start;
+}
+
+.aitero-response-table th {
+	background: var(--aitero-surface-raised);
+	font-weight: 650;
+}
+
+.aitero-response-table tr:last-child td {
+	border-bottom: 0;
+}
+
+.aitero-response-code {
+	margin: 9px 0;
+	padding: 9px 10px;
+	overflow-x: auto;
+	border-radius: 8px;
+	background: var(--aitero-surface-raised);
+	white-space: pre;
+}
+
+.aitero-inline-code {
+	padding: 1px 4px;
+	border-radius: 4px;
+	background: var(--aitero-surface-raised);
+	font-family: ui-monospace, Menlo, monospace;
+	font-size: 0.92em;
+}
+
+.aitero-math-inline {
+	display: inline-block;
+	max-width: 100%;
+	margin: 0 2px;
+	vertical-align: -0.1em;
+}
+
+.aitero-math-display {
+	max-width: 100%;
+	margin: 10px 0;
+	padding: 10px 8px;
+	overflow-x: auto;
+	border: 1px solid var(--aitero-border);
+	border-radius: 9px;
+	background: var(--aitero-surface);
+	text-align: center;
+}
+
+.aitero-math-display .katex-display {
+	margin: 0;
+}
+
+.aitero-citation {
+	display: inline-flex;
+	align-items: center;
+	margin: 1px 3px;
+	padding: 2px 7px;
+	border: 1px solid color-mix(in srgb, AccentColor 30%, transparent);
+	border-radius: 999px;
+	color: var(--aitero-accent);
+	background: var(--aitero-accent-softer);
+	font: inherit;
+	font-size: 0.84em;
+	font-weight: 650;
+	line-height: 1.4;
+	cursor: pointer;
+}
+
+.aitero-citation:hover {
+	background: var(--aitero-accent-soft);
+}
+
+.aitero-citation:focus-visible,
+.aitero-button:focus-visible,
+.aitero-input:focus-visible {
+	outline: 2px solid var(--aitero-accent);
+	outline-offset: 1px;
+}
+
+.aitero-jump-latest {
+	position: absolute;
+	right: 12px;
+	bottom: 10px;
+	z-index: 2;
+	box-shadow: 0 3px 12px color-mix(in srgb, #000 18%, transparent);
+}
+
+.aitero-composer {
+	flex: 0 0 auto;
+	padding: 9px;
+	border: 1px solid var(--aitero-border);
+	border-radius: 12px;
+	background: var(--aitero-surface);
+}
+
+.aitero-input {
+	display: block;
+	width: 100%;
+	min-height: 64px;
+	max-height: 150px;
+	resize: vertical;
+	padding: 8px 9px;
+	border: 0;
+	border-radius: 8px;
+	color: inherit;
+	background: transparent;
+	font: inherit;
+	line-height: 1.42;
+}
+
+.aitero-input:focus {
+	outline: none;
+}
+
+.aitero-composer-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 7px 2px 0;
+	border-top: 1px solid var(--aitero-border);
+}
+
+.aitero-status {
+	display: inline-flex;
+	align-items: center;
+	min-width: 0;
+}
+
+.aitero-status::before {
+	width: 6px;
+	height: 6px;
+	margin-inline-end: 6px;
+	border-radius: 50%;
+	background: var(--aitero-accent);
+	content: "";
+}
+
+.aitero-actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 6px;
+}
+
+.aitero-button {
+	min-height: 28px;
+	padding: 4px 9px;
+	border: 1px solid var(--aitero-border);
+	border-radius: 7px;
+	color: inherit;
+	background: var(--aitero-surface-raised);
+	font: inherit;
+	cursor: pointer;
+}
+
+.aitero-button:hover:not(:disabled) {
+	background: color-mix(in srgb, currentColor 11%, transparent);
+}
+
+.aitero-send,
+.aitero-cancel {
+	border-color: transparent;
+	color: AccentColorText;
+	background: var(--aitero-accent);
+	font-weight: 650;
+}
+
+.aitero-send:hover:not(:disabled),
+.aitero-cancel:hover:not(:disabled) {
+	background: color-mix(in srgb, AccentColor 86%, #000);
+}
+
+.aitero-suggestion {
+	min-height: 26px;
+	padding: 3px 8px;
+	border-radius: 999px;
+	color: var(--aitero-accent);
+	background: transparent;
+	font-size: 0.88em;
+}
+
+.aitero-button:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+.aitero-retry[hidden],
+.aitero-cancel[hidden],
+.aitero-send[hidden],
+.aitero-jump-latest[hidden],
+.aitero-warning[hidden],
+.aitero-error[hidden] {
+	display: none;
+}
+
+@media (max-height: 620px) {
+	.aitero-root {
+		height: max(390px, calc(100vh - 112px));
+	}
+}
