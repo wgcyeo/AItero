@@ -21,7 +21,7 @@ git status --short --branch
 
 ## 2. Update the version
 
-For a release after 0.1.0, update:
+For every release, update:
 
 - `package.json`;
 - `package-lock.json`;
@@ -47,11 +47,11 @@ npm run check:english
 npm run check:config
 npm test
 npm run package
-cp dist/aitero-assistant-0.1.0.xpi /tmp/aitero-release-first.xpi
+cp dist/aitero-assistant-0.2.0.xpi /tmp/aitero-release-first.xpi
 npm run package
-cmp /tmp/aitero-release-first.xpi dist/aitero-assistant-0.1.0.xpi
+cmp /tmp/aitero-release-first.xpi dist/aitero-assistant-0.2.0.xpi
 cd dist
-shasum -a 256 -c aitero-assistant-0.1.0.xpi.sha256
+shasum -a 256 -c aitero-assistant-0.2.0.xpi.sha256
 ```
 
 Adjust versioned filenames for later releases.
@@ -59,10 +59,10 @@ Adjust versioned filenames for later releases.
 Inspect package contents:
 
 ```sh
-unzip -l aitero-assistant-0.1.0.xpi
+unzip -l aitero-assistant-0.2.0.xpi
 ```
 
-The XPI should contain only plugin source, the English Fluent resource, icons, CSS, and vendored KaTeX assets. It must not contain Git metadata, tests, documentation, `.env` files, shell startup files, or credentials.
+The XPI should contain only the project license, plugin source, the English Fluent resource, icons, CSS, and vendored KaTeX assets. It must not contain Git metadata, tests, documentation, `.env` files, shell startup files, or credentials.
 
 ## 5. Isolated Zotero validation
 
@@ -93,7 +93,7 @@ Never run a release smoke request on a private user-library document.
 git add --all
 git diff --cached --check
 git diff --cached
-git commit -m "Release AItero Assistant 0.1.0"
+git commit -m "Release AItero Assistant 0.2.0"
 git push origin main
 ```
 
@@ -104,8 +104,8 @@ Use the actual release version in the commit subject.
 Use an annotated tag:
 
 ```sh
-git tag -a v0.1.0 -m "AItero Assistant v0.1.0"
-git push origin v0.1.0
+git tag -a v0.2.0 -m "AItero Assistant v0.2.0"
+git push origin v0.2.0
 ```
 
 Pushing the tag starts the Release workflow.
@@ -132,13 +132,13 @@ The Release workflow:
 ## 9. Verify the Release
 
 ```sh
-gh release view v0.1.0 --repo wgcyeo/AItero
-gh release download v0.1.0 \
+gh release view v0.2.0 --repo wgcyeo/AItero
+gh release download v0.2.0 \
   --repo wgcyeo/AItero \
-  --pattern 'aitero-assistant-0.1.0.xpi*' \
+  --pattern 'aitero-assistant-0.2.0.xpi*' \
   --dir /tmp/aitero-release-download
 cd /tmp/aitero-release-download
-shasum -a 256 -c aitero-assistant-0.1.0.xpi.sha256
+shasum -a 256 -c aitero-assistant-0.2.0.xpi.sha256
 ```
 
 Confirm that the Release is associated with the intended tag and contains exactly the XPI and checksum assets.
@@ -147,7 +147,7 @@ Confirm that the Release is associated with the intended tag and contains exactl
 
 The repository and Release are private. Recipients must have GitHub access to download assets. Do not embed a GitHub token in the plugin or an update URL.
 
-Zotero 9 requires `update_url` in the manifest. Version 0.1.0 uses an inert reserved `.invalid` URL and manual XPI updates.
+Zotero 9 requires `update_url` in the manifest. The current release uses an inert reserved `.invalid` URL and manual XPI updates.
 
 If the project later becomes public and automatic updates are desired:
 

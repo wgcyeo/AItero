@@ -4,6 +4,26 @@ All notable changes to AItero Assistant are documented here.
 
 The project follows semantic versioning for Release tags.
 
+## 0.2.0 - 2026-08-14
+
+### Added
+
+- Codex App Server integration with delegated ChatGPT browser sign-in and no direct token access.
+- Model-invoked live web search and up to three parallel research agents in Codex mode.
+- Ephemeral Codex turns with streaming, explicit cancellation, and HTTPS web-source links.
+- Apache License 2.0 project licensing, included in both the repository and packaged XPI.
+
+### Changed
+
+- Codex is now selected automatically when authenticated, with the OpenAI API key used only as a fallback.
+- Codex parent and subagent defaults are now `gpt-5.6-sol` with xhigh reasoning and the fast service tier.
+- Provider and research-tool selectors were removed; the status line now reports the active provider and Codex configuration.
+
+### Security
+
+- Codex runs use an empty temporary working directory and disable shell execution, file changes, MCP, hooks, memories, and approvals.
+- Unexpected active tools fail closed and cancel the turn without committing its output to chat history.
+
 ## 0.1.0 - 2026-08-14
 
 ### Added

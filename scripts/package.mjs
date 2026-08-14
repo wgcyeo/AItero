@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SOURCE_DIR = resolve(ROOT, "src");
 const DIST_DIR = resolve(ROOT, "dist");
+const LICENSE_FILE = resolve(ROOT, "LICENSE");
 const DOS_DATE = (1 << 5) | 1; // 1980-01-01, the earliest ZIP timestamp
 const DOS_TIME = 0;
 const FILE_MODE = 0o100644;
@@ -136,6 +137,11 @@ async function main() {
   }
 
   const files = await collectFiles(SOURCE_DIR);
+  const license = await stat(LICENSE_FILE).catch(() => null);
+  if (!license?.isFile()) {
+    throw new Error("Project LICENSE file does not exist");
+  }
+  files.push({ archivePath: "LICENSE", diskPath: LICENSE_FILE });
   files.sort((a, b) => Buffer.compare(
     Buffer.from(a.archivePath),
     Buffer.from(b.archivePath),

@@ -4,7 +4,7 @@ This guide covers installation from a private GitHub Release, building from sour
 
 ## 1. Supported configuration
 
-AItero 0.1.0 is intentionally narrow and version-pinned.
+AItero 0.2.0 is intentionally narrow and version-pinned.
 
 | Component | Supported value |
 | --- | --- |
@@ -13,8 +13,9 @@ AItero 0.1.0 is intentionally narrow and version-pinned.
 | Zotero version | `9.0` through `9.0.*` |
 | CPU | Apple Silicon or Intel |
 | Node.js for builds | 18 or newer; CI uses Node.js 22 |
-| OpenAI API | Responses API with streaming |
-| Default model | `gpt-5.6-luna` |
+| OpenAI providers | Responses API key, or Codex CLI with ChatGPT sign-in |
+| API-key default | `gpt-5.6-luna`, medium reasoning |
+| Codex default | `gpt-5.6-sol`, xhigh reasoning, fast service tier |
 | Plugin UI | English |
 
 Do not install this release on Zotero 10 or later. The public item-pane integration is stable, but the page-text compatibility adapter is explicitly tied to Zotero 9 internals.
@@ -28,11 +29,11 @@ There are two supported paths.
 Use this path when you only want to run AItero.
 
 1. Open the private repository's **Releases** page while signed in to GitHub.
-2. Open release `v0.1.0`.
+2. Open release `v0.2.0`.
 3. Download:
 
-   - `aitero-assistant-0.1.0.xpi`
-   - `aitero-assistant-0.1.0.xpi.sha256`
+   - `aitero-assistant-0.2.0.xpi`
+   - `aitero-assistant-0.2.0.xpi.sha256`
 
 4. Verify the XPI before installing it.
 
@@ -106,7 +107,35 @@ npm ci
 
 The only runtime asset dependency is the pinned KaTeX distribution. The build copies its browser bundle, fonts, and MIT license into `src/vendor/katex/`. A packaged XPI does not load scripts, fonts, or stylesheets from a CDN.
 
-## 6. Configure the OpenAI API key
+## 6. Configure OpenAI access
+
+AItero automatically prefers an authenticated Codex CLI. The API key is a fallback used only when Codex is unavailable or signed out. The status line identifies the provider used for the next request.
+
+### Codex login provider
+
+Install the Codex CLI using the [official Codex setup instructions](https://learn.chatgpt.com/docs/codex-cli), then verify it without exposing account details:
+
+```sh
+codex --version
+codex login status
+```
+
+If needed, run `codex login`, or use **Sign in to Codex** in AItero when it appears. The browser flow and credential cache belong to Codex; AItero never reads `~/.codex/auth.json`, copies tokens, or stores them in Zotero.
+
+The plugin looks for Codex in this order:
+
+1. the absolute executable path in `CODEX_PATH`;
+2. `/opt/homebrew/bin/codex`;
+3. `/usr/local/bin/codex`; and
+4. `codex` on Zotero's inherited `PATH`.
+
+Codex requests run in fresh ephemeral App Server threads rooted at an empty temporary directory. The parent and its subagents use a read-only sandbox with no shell, file changes, MCP, connectors, image tools, or approval requests. These settings, including `approvalPolicy: "never"`, are sent by AItero on every request and do not depend on a particular machine's `~/.codex/config.toml`.
+
+AItero explicitly selects GPT-5.6 Sol with xhigh reasoning and Codex fast mode for the parent and default subagents. Fast mode is approximately 1.5× faster and, for GPT-5.6 with ChatGPT sign-in, consumes 2.5× the credits of Standard mode. This Codex default is independent of `OPENAI_MODEL`, which only overrides the API-key provider.
+
+Web search and parallel research agents are always available in Codex mode, and the model is instructed to use them only when useful. Web search can send model-generated queries beyond the supplied PDF context; do not send sensitive papers if that exposure is unacceptable. Parallel research is capped at three child agents, and they inherit the parent sandbox.
+
+### API-key provider
 
 ### Recommended configuration for normal app launching
 
@@ -233,8 +262,8 @@ From a source build:
 ```sh
 npm run package
 cd dist
-shasum -a 256 aitero-assistant-0.1.0.xpi
-cat aitero-assistant-0.1.0.xpi.sha256
+shasum -a 256 aitero-assistant-0.2.0.xpi
+cat aitero-assistant-0.2.0.xpi.sha256
 ```
 
 The two digests must match exactly.
@@ -243,8 +272,8 @@ For a downloaded Release asset, place the XPI and sidecar in the same directory 
 
 ```sh
 cd /path/to/downloads
-shasum -a 256 aitero-assistant-0.1.0.xpi
-cat aitero-assistant-0.1.0.xpi.sha256
+shasum -a 256 aitero-assistant-0.2.0.xpi
+cat aitero-assistant-0.2.0.xpi.sha256
 ```
 
 Do not install an XPI whose digest differs from the published sidecar.
@@ -258,8 +287,8 @@ The XPI is locally built and unsigned. Install it only when it came from the pri
 3. Choose **Tools → Plugins**.
 4. Open the tools menu in the Plugins Manager.
 5. Choose **Install Plugin From File…**.
-6. Select `aitero-assistant-0.1.0.xpi`.
-7. Confirm that **AItero Assistant 0.1.0** appears and is enabled.
+6. Select `aitero-assistant-0.2.0.xpi`.
+7. Confirm that **AItero Assistant 0.2.0** appears and is enabled.
 8. Fully quit Zotero.
 9. Reopen Zotero normally.
 
@@ -272,7 +301,7 @@ Use a public or otherwise non-confidential PDF for the first request.
 1. Select exactly one Zotero item with a local PDF attachment, or open one PDF in the Reader.
 2. Click the **AI Assistant** icon in the right sidebar.
 3. Confirm that the panel starts directly with the chat welcome screen. No paper-title metadata row should appear.
-4. Confirm that the bottom-left status changes from **Checking API key…** to **Ready**.
+4. Confirm that the bottom-left status shows **Ready · Codex · gpt-5.6-sol (xhigh, fast)** or **Ready · OpenAI API fallback · Luna**. If Codex asks for authentication, use **Sign in to Codex** and finish in the browser.
 5. Ask a narrowly scoped question such as:
 
    ```text
@@ -328,22 +357,23 @@ Before moving anything, print and verify the exact value of `TEST_ROOT`. Never u
 - **Cancel** aborts extraction or network streaming.
 - **Retry** is always explicit; AItero never retries automatically.
 - **New chat** clears the in-memory conversation.
+- Codex is selected automatically when authenticated; otherwise AItero uses the API-key fallback when available.
 
 The plugin reads Zotero data but does not write items, notes, tags, attachments, annotations, collections, or sync state.
 
 ## 13. Data sent to OpenAI
 
-Submitting a question sends:
+Submitting a question with either provider sends:
 
 - the user question;
 - all extracted PDF text when the serialized page chunks total at most 750,000 characters;
 - selected excerpts only for an oversized-document fallback;
 - successful previous turns in the same panel session; and
-- a random `safety_identifier`.
+- a random `safety_identifier` for API-key requests only.
 
 It does not send the entire library, Zotero account credentials, collection names, tags, notes, or unrelated PDFs. The full-paper prefix is resent for each request but is not duplicated inside the in-memory conversation history.
 
-The request uses:
+The API-key request uses:
 
 ```json
 {
@@ -362,9 +392,13 @@ The actual request also contains the input, instructions, and a random safety id
 
 `store: false` prevents the Responses object from being stored for later API retrieval. It does not itself grant Zero Data Retention or disable every abuse-monitoring log. Those controls depend on the OpenAI organization and project.
 
+The Codex provider sends the same paper and conversation input through a local `codex app-server` process. Each AItero request uses an ephemeral thread, disables App Server history and memory for that thread, and unsubscribes at completion. Codex owns its ChatGPT credential cache. AItero sends no API key or safety identifier on this path.
+
+When the model uses web search, Codex may additionally send generated search queries. AItero instructs it not to put verbatim PDF excerpts, chunk IDs, local paths, personal identifiers, or confidential paper details into queries. This is a model-level instruction, not a hard data-loss-prevention guarantee. Web claims are rendered as HTTPS links and remain separate from locally validated PDF citations.
+
 ## 14. Upgrade procedure
 
-Private GitHub Release assets cannot be fetched automatically by Zotero without authentication. AItero 0.1.0 therefore uses manual updates.
+Private GitHub Release assets cannot be fetched automatically by Zotero without authentication. AItero 0.2.0 therefore uses manual updates.
 
 1. Download the new XPI and checksum sidecar from the private Release.
 2. Verify the checksum.
@@ -385,7 +419,7 @@ Normal removal:
 3. Choose **Remove**.
 4. Fully restart Zotero.
 
-Uninstalling clears the plugin's random `safety_identifier` preference. The API key remains in the environment or shell startup file because AItero never owns or writes it.
+Uninstalling clears the random `safety_identifier` and any legacy non-secret provider/tool preferences. The API key remains in the environment or shell startup file, and Codex login remains in Codex's own credential store, because AItero never owns or writes either credential.
 
 If normal Zotero UI startup fails:
 
@@ -408,6 +442,21 @@ AItero does not modify the Zotero database, so there is no database migration or
 - Confirm the line is not commented out.
 - If multiple assignments exist, remember that the last valid assignment in the first matching file wins.
 - Fully restart Zotero after changing the plugin version. The key itself is reread on each request.
+
+### Codex CLI was not found
+
+- Run `codex --version` in Terminal.
+- On Apple Silicon Homebrew, confirm `/opt/homebrew/bin/codex` exists.
+- On Intel Homebrew, confirm `/usr/local/bin/codex` exists.
+- For another installation location, start Zotero with `CODEX_PATH` set to the absolute executable path.
+- Fully restart Zotero after installing or moving Codex.
+
+### Codex sign-in is required
+
+- Click **Sign in** in the AItero composer and finish the browser flow.
+- Alternatively run `codex login`, then reopen the panel.
+- Use `codex login status` to check the CLI without printing credentials.
+- Workspace policy can restrict ChatGPT login or model access; contact the workspace administrator if authentication succeeds but turns remain unauthorized.
 
 ### The AI Assistant icon is missing
 
@@ -481,6 +530,7 @@ Then verify:
 - both English Fluent attributes load;
 - installation succeeds in an isolated profile;
 - normal Dock/Finder launch reaches **Ready** using the safe rc-file parser; and
+- Codex mode reaches **Ready · Codex** and completes one ephemeral read-only smoke turn when that provider is part of the release; and
 - no request is made with a private user-library PDF during release validation.
 
 Release maintainers should continue with [RELEASING.md](RELEASING.md).

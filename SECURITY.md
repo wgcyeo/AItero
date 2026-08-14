@@ -4,7 +4,7 @@
 
 | Version | Zotero | Security updates |
 | --- | --- | --- |
-| 0.1.x | 9.0.x | Supported |
+| 0.2.x | 9.0.x | Supported |
 
 The Zotero compatibility boundary is enforced by `strict_min_version` and `strict_max_version` in `src/manifest.json`.
 
@@ -39,8 +39,8 @@ The plugin still reads:
 
 - metadata required to identify the active PDF;
 - local PDF text required for retrieval;
-- the current shell startup files used for configuration; and
-- one non-secret random preference used as `safety_identifier`.
+- supported shell startup files when resolving API-key or model configuration; and
+- the non-secret random `safety_identifier` used by API-key requests.
 
 ## API-key handling
 
@@ -73,6 +73,14 @@ The key is sent only as the HTTPS Bearer token for `https://api.openai.com/v1/re
 
 Shell startup files are plaintext. Other processes running as the same macOS user and other privileged Zotero plugins can read them. Use a trusted personal account, restrict file permissions, use a dedicated project key, and configure an appropriate project budget.
 
+## Codex authentication
+
+The Codex provider launches the installed `codex app-server` executable directly, without starting a shell. Authentication status and browser login use App Server's `account/read` and `account/login/start` methods.
+
+AItero does not read, parse, copy, serialize, or log Codex access or refresh tokens. It does not inspect `~/.codex/auth.json` or the operating-system keychain. Codex remains the credential owner, and uninstalling AItero does not log the user out of Codex.
+
+`CODEX_PATH` may select an absolute executable path. Because a Zotero plugin is privileged and the selected executable runs as the current macOS user, set it only to a trusted Codex installation. AItero also recognizes the standard Homebrew paths and inherited `PATH`.
+
 ## Secret scanning before release
 
 Before committing or releasing:
@@ -87,7 +95,7 @@ Also inspect staged changes and the XPI file list:
 
 ```sh
 git diff --cached
-unzip -l dist/aitero-assistant-0.1.0.xpi
+unzip -l dist/aitero-assistant-0.2.0.xpi
 ```
 
 Never run commands that print `OPENAI_API_KEY`. If a key appears in Git history or a Release asset, revoke it immediately, create a new key, remove the affected artifact, and treat the old key as compromised.
@@ -100,9 +108,15 @@ AItero sends data only after the user presses **Send** or the submit shortcut. T
 - the full extracted text of the active PDF when it fits the local context cap;
 - selected excerpts from oversized PDFs;
 - successful previous turns in the same panel session; and
-- a random per-profile safety identifier.
+- a random per-profile safety identifier for API-key requests only.
 
-Requests use `store: false`, but this is not equivalent to organization-level Zero Data Retention or Modified Abuse Monitoring. The OpenAI organization and project control the applicable retention policy.
+API-key requests use `store: false`. Codex requests use ephemeral App Server threads, request no local transcript history or memory generation, and unsubscribe when the turn ends. These settings are not equivalent to organization-level Zero Data Retention or Modified Abuse Monitoring. The selected OpenAI account controls the applicable policy.
+
+When useful, Codex may send model-generated web-search queries. The developer instruction prohibits verbatim PDF excerpts, chunk IDs, local paths, personal identifiers, and confidential paper details in those queries, but this is a model-level mitigation rather than a deterministic data-loss-prevention filter. Do not send sensitive papers if this exposure is unacceptable.
+
+Parallel research agents receive only prompts delegated by the parent model. They remain inside the same Codex session tree and inherit the parent's read-only sandbox. Their use can increase token consumption.
+
+The Codex provider fixes the parent and default subagents to GPT-5.6 Sol with xhigh reasoning and fast service tier. GPT-5.6 fast mode consumes ChatGPT credits at 2.5 times the Standard rate, so parallel delegation can multiply an already higher-cost setting.
 
 Do not test with confidential PDFs unless the account policy, document owner, and intended processing all permit the transfer.
 
@@ -110,7 +124,21 @@ Do not test with confidential PDFs unless the account policy, document owner, an
 
 PDF text is untrusted source material. The system instruction explicitly tells the model not to follow commands embedded in a paper. Only opaque chunk IDs selected locally may be converted into citation buttons.
 
-This boundary reduces, but cannot eliminate, model-level prompt-injection risk. AItero does not allow model output to execute code, inject arbitrary HTML, navigate to arbitrary URLs, or select unprovided citation IDs.
+This boundary reduces, but cannot eliminate, model-level prompt-injection risk. AItero does not allow model output to execute code, inject arbitrary HTML, or select unprovided citation IDs. Markdown links are accepted only for `https:` URLs and open only after a user click.
+
+## Codex tool boundary
+
+Every Codex process receives command-line overrides that disable apps, browser/computer control, image tools, plugins, shell tools, unified execution, login-shell behavior, MCP servers, hooks, persisted history, memories, and editor file openers. Every turn also uses:
+
+- a fresh empty temporary working directory;
+- an ephemeral thread;
+- `approvalPolicy: "never"`;
+- the read-only sandbox; and
+- sandbox network access disabled for local execution.
+
+These controls are supplied by the plugin at runtime on every installation; they do not rely on the developer machine's Codex preferences.
+
+Web search and subagent collaboration are the only active agent tools AItero permits. They are available by default and the model is instructed to invoke them only when useful. Subagents are capped at three concurrent children and inherit the parent sandbox. If App Server reports a command, file change, MCP call, dynamic tool, or image tool despite the configuration, AItero interrupts the turn and refuses to commit its output.
 
 ## Rendering security
 
@@ -119,10 +147,11 @@ This boundary reduces, but cannot eliminate, model-level prompt-injection risk. 
 - KaTeX is bundled locally.
 - KaTeX uses `trust: false`, `strict: "error"`, bounded expansion, and bounded size.
 - Citation buttons are created only for exact IDs in the request evidence set.
+- External Markdown links are restricted to HTTPS and require an explicit click.
 
 ## Network behavior
 
-The plugin communicates directly with the OpenAI Responses endpoint using Zotero's window `fetch` implementation. Requests use:
+The API-key provider communicates directly with the OpenAI Responses endpoint using Zotero's window `fetch` implementation. Requests use:
 
 - `credentials: "omit"`;
 - `cache: "no-store"`;
@@ -130,7 +159,7 @@ The plugin communicates directly with the OpenAI Responses endpoint using Zotero
 - `stream: true`; and
 - `store: false`.
 
-AItero does not use an OpenAI SDK, analytics service, telemetry endpoint, CDN, local listening port, or separate server.
+AItero does not use an OpenAI SDK, analytics service, CDN, or local listening port. The Codex provider starts a local stdio App Server subprocess, which communicates with OpenAI under Codex's own account and data controls. App Server analytics are disabled by default unless the user's Codex configuration explicitly enables them.
 
 ## Dependency and release security
 

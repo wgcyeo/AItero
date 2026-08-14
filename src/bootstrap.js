@@ -1,4 +1,5 @@
 var AIteroAssistant;
+var AIteroCodex;
 
 function log(message) {
 	Zotero.debug(`AItero Assistant: ${message}`);
@@ -13,8 +14,10 @@ async function startup({ id, version, rootURI }) {
 	Services.scriptloader.loadSubScript(`${rootURI}content/pdf.js`);
 	Services.scriptloader.loadSubScript(`${rootURI}content/compat.js`);
 	Services.scriptloader.loadSubScript(`${rootURI}content/openai.js`);
+	Services.scriptloader.loadSubScript(`${rootURI}content/codex.js`);
 	Services.scriptloader.loadSubScript(`${rootURI}content/assistant.js`);
 
+	AIteroCodex.configure({ version });
 	await AIteroAssistant.init({ id, version, rootURI });
 	AIteroAssistant.addToAllWindows();
 	log(`started ${version}`);
@@ -28,19 +31,27 @@ function onMainWindowUnload({ window }) {
 	AIteroAssistant?.removeFromWindow(window);
 }
 
-function shutdown() {
-	if (!AIteroAssistant) return;
-	AIteroAssistant.shutdown();
+async function shutdown() {
+	AIteroAssistant?.shutdown();
+	await AIteroCodex?.shutdown();
 	AIteroAssistant = undefined;
+	AIteroCodex = undefined;
 	log("stopped");
 }
 
 function uninstall() {
-	try {
-		Services.prefs.clearUserPref("extensions.aitero-assistant.safetyIdentifier");
-	}
-	catch (_error) {
-		// The preference does not exist.
+	for (let name of [
+		"extensions.aitero-assistant.safetyIdentifier",
+		"extensions.aitero-assistant.provider",
+		"extensions.aitero-assistant.webSearch",
+		"extensions.aitero-assistant.parallelAgents",
+	]) {
+		try {
+			Services.prefs.clearUserPref(name);
+		}
+		catch (_error) {
+			// The preference does not exist.
+		}
 	}
 	log("uninstalled");
 }

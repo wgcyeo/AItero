@@ -68,6 +68,8 @@ Tests must remain deterministic and network-free. The suite covers:
 - exactly-once history commit;
 - cancellation and failure history invariants;
 - API-key redaction;
+- Codex JSONL framing, browser-login delegation, and ephemeral turn policy;
+- always-available, model-invoked web search and parallel agents with blocked-tool fail-closed behavior;
 - UI scrolling and safe Markdown structure;
 - local untrusted KaTeX rendering; and
 - literal shell-config parsing.
@@ -80,6 +82,7 @@ Keep responsibilities separated:
 
 - `src/content/pdf.js` — pure PDF page, chunk, retrieval, cache, and citation logic;
 - `src/content/openai.js` — request construction, SSE parsing, typed errors, and history transactions;
+- `src/content/codex.js` — Codex App Server lifecycle, authentication delegation, JSONL protocol, and agent-tool policy;
 - `src/content/compat.js` — Zotero 9 internal PDF and Reader adapters;
 - `src/content/assistant.js` — Zotero UI, lifecycle, credential discovery, and orchestration;
 - `src/content/style.css` — pane layout and rendering styles; and
@@ -100,7 +103,7 @@ Changes must not write to Zotero library content. Do not add calls that save or 
 - annotations; or
 - sync state.
 
-The only persistent plugin-owned value is the random non-secret `safety_identifier` preference.
+The only persistent plugin-owned value is the random non-secret `safety_identifier`. Uninstall also clears legacy non-secret provider/tool preferences from earlier development builds.
 
 ## UI changes
 
@@ -133,15 +136,26 @@ Preserve unless a reviewed change explicitly requires otherwise:
 
 Never serialize or log keys, authorization headers, paper excerpts, or complete request bodies.
 
+For the Codex provider, preserve unless a reviewed change explicitly requires otherwise:
+
+- authentication through App Server rather than direct token-file or keychain access;
+- an ephemeral thread per AItero request;
+- an empty temporary working directory;
+- read-only sandboxing with no approvals;
+- command-line and per-thread shell, MCP, hook, history, and memory restrictions;
+- no automatic retry;
+- a three-child maximum for parallel agents; and
+- immediate interruption and no history commit if a blocked active tool appears.
+
 ## Packaging
 
 Build the XPI twice before requesting review:
 
 ```sh
 npm run package
-cp dist/aitero-assistant-0.1.0.xpi /tmp/aitero-first.xpi
+cp dist/aitero-assistant-0.2.0.xpi /tmp/aitero-first.xpi
 npm run package
-cmp /tmp/aitero-first.xpi dist/aitero-assistant-0.1.0.xpi
+cmp /tmp/aitero-first.xpi dist/aitero-assistant-0.2.0.xpi
 ```
 
 The packaging script must continue to produce byte-identical output from identical source.

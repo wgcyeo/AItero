@@ -293,9 +293,17 @@
 	background: var(--aitero-accent-soft);
 }
 
+.aitero-external-link {
+	color: var(--aitero-accent);
+	text-decoration: underline;
+	text-decoration-thickness: from-font;
+	text-underline-offset: 2px;
+}
+
 .aitero-citation:focus-visible,
 .aitero-button:focus-visible,
-.aitero-input:focus-visible {
+.aitero-input:focus-visible,
+.aitero-external-link:focus-visible {
 	outline: 2px solid var(--aitero-accent);
 	outline-offset: 1px;
 }
@@ -314,6 +322,11 @@
 	border: 1px solid var(--aitero-border);
 	border-radius: 12px;
 	background: var(--aitero-surface);
+}
+
+.aitero-codex-sign-in {
+	min-height: 24px;
+	padding-block: 2px;
 }
 
 .aitero-input {
@@ -411,6 +424,7 @@
 .aitero-retry[hidden],
 .aitero-cancel[hidden],
 .aitero-send[hidden],
+.aitero-codex-sign-in[hidden],
 .aitero-jump-latest[hidden],
 .aitero-warning[hidden],
 .aitero-error[hidden] {

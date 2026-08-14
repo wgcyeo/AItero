@@ -51,7 +51,55 @@ test("system instructions isolate untrusted paper text and require opaque citati
 	assert.match(instructions, /\[\[cite:<chunk-id>\]\]/);
 	assert.match(instructions, /Never invent/);
 	assert.match(instructions, /same language/i);
+	assert.match(instructions, /Markdown links/);
 	assert.doesNotMatch(instructions, /OPENAI_API_KEY/);
+});
+
+test("external model links are limited to HTTPS URLs", () => {
+	const { safeExternalURL } = assistant._test;
+	assert.equal(safeExternalURL("https://example.com/paper?q=1"), "https://example.com/paper?q=1");
+	assert.equal(safeExternalURL("http://example.com"), "");
+	assert.equal(safeExternalURL("javascript:alert(1)"), "");
+	assert.equal(safeExternalURL("not a URL"), "");
+});
+
+test("Codex is selected automatically and the API key is fallback-only", async () => {
+	const { resolveProvider } = assistant._test;
+	let apiChecks = 0;
+	const codex = await resolveProvider({
+		getCodexStatus: async () => ({ available: true, authenticated: true }),
+		hasApiKeyImpl: async () => {
+			apiChecks++;
+			return true;
+		},
+	});
+	assert.equal(codex.provider, "codex");
+	assert.equal(apiChecks, 0);
+
+	const fallback = await resolveProvider({
+		getCodexStatus: async () => ({ available: true, authenticated: false }),
+		hasApiKeyImpl: async () => true,
+	});
+	assert.equal(fallback.provider, "api");
+	assert.equal(fallback.codexAvailable, true);
+
+	const unavailable = await resolveProvider({
+		getCodexStatus: async () => {
+			throw new Error("not installed");
+		},
+		hasApiKeyImpl: async () => false,
+	});
+	assert.equal(unavailable.provider, null);
+});
+
+test("the composer has no provider selector or research-tool checkboxes", () => {
+	const source = fs.readFileSync(
+		path.join(__dirname, "..", "src", "content", "assistant.js"),
+		"utf8",
+	);
+	assert.doesNotMatch(source, /providerSelect|webSearchToggle|parallelAgentsToggle/);
+	assert.match(source, /enableWebSearch:\s*true/);
+	assert.match(source, /enableParallelAgents:\s*true/);
 });
 
 test("context hints change immediately when the selected item or reader tab changes", () => {
@@ -127,6 +175,7 @@ test("pane Fluent messages localize attributes without replacing the custom body
 	assert.match(ftl, /aitero-pane-header\s*=\s*\n\s+\.label\s*=/);
 	assert.match(ftl, /aitero-pane-sidenav\s*=\s*\n\s+\.tooltiptext\s*=/);
 	assert.match(ftl, /^aitero-pane-header[ \t]*=[ \t]*$/m);
+	assert.match(ftl, /aitero-ready-codex\s*=\s*Ready · Codex · gpt-5\.6-sol \(xhigh, fast\)/);
 });
 
 test("safe markdown blocks recognize headings, lists, tables, code, and paragraphs", () => {
@@ -238,4 +287,26 @@ test("math rendering is bundled, resource-local, and treats model TeX as untrust
 	assert.match(source, /maxExpand:\s*500/);
 	assert.match(source, /loadSubScript\(`\$\{_rootURI\}vendor\/katex\/katex\.min\.js`, win\)/);
 	assert.doesNotMatch(source, /https?:\/\/[^`"']*katex/i);
+});
+
+test("bootstrap loads Codex before the assistant and clears non-secret provider preferences", () => {
+	const source = fs.readFileSync(
+		path.join(__dirname, "..", "src", "bootstrap.js"),
+		"utf8",
+	);
+	assert.ok(source.indexOf("content/codex.js") < source.indexOf("content/assistant.js"));
+	assert.match(source, /AIteroCodex\.configure\(\{ version \}\)/);
+	assert.match(source, /extensions\.aitero-assistant\.provider/);
+	assert.match(source, /extensions\.aitero-assistant\.webSearch/);
+	assert.match(source, /extensions\.aitero-assistant\.parallelAgents/);
+});
+
+test("release metadata declares Apache-2.0 and packages the project license", () => {
+	const root = path.join(__dirname, "..");
+	const packageMetadata = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+	const license = fs.readFileSync(path.join(root, "LICENSE"), "utf8");
+	const packageScript = fs.readFileSync(path.join(root, "scripts", "package.mjs"), "utf8");
+	assert.equal(packageMetadata.license, "Apache-2.0");
+	assert.match(license, /Apache License\s+Version 2\.0, January 2004/);
+	assert.match(packageScript, /archivePath: "LICENSE"/);
 });

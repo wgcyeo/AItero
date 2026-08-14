@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "AItero Assistant",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A local, read-only AI assistant for the current Zotero PDF.",
   "applications": {
     "zotero": {
