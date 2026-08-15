@@ -16,6 +16,7 @@ When outside web sources are available, cite them with descriptive Markdown link
 Be accurate, direct, and useful. Do not emit HTML.`;
 
 	let _rootURI = null;
+	let _assetCacheKey = null;
 	let _registeredPaneID = null;
 	let _tabObserverID = null;
 	let _initialized = false;
@@ -409,6 +410,40 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 		return blocks;
 	}
 
+	function formatConversationMarkdown(title, messages) {
+		let paperTitle = String(title || "PDF")
+			.replace(/[\r\n\t]+/g, " ")
+			.replace(/\s{2,}/g, " ")
+			.trim() || "PDF";
+		let sections = ["# AItero chat", "", `Paper: ${paperTitle}`];
+		for (let message of Array.isArray(messages) ? messages : []) {
+			let text = String(message?.text ?? "").replace(/\r\n?/g, "\n").trim();
+			if (!text) continue;
+			let heading = message.role === "user"
+				? "You"
+				: (message.incomplete ? "AItero (partial)" : "AItero");
+			sections.push("", `## ${heading}`, "", text);
+		}
+		return `${sections.join("\n")}\n`;
+	}
+
+	function exportFilename(title) {
+		let base = String(title || "PDF")
+			.replace(/[\u0000-\u001f<>:"/\\|?*]+/g, " ")
+			.replace(/\s{2,}/g, " ")
+			.trim()
+			.replace(/^\.+|\.+$/g, "")
+			.trim()
+			.slice(0, 96) || "PDF";
+		return `${base} - AItero chat.md`;
+	}
+
+	function readableCitationText(text, allowedChunks) {
+		return AIteroPDF.parseCitationMarkers(text, allowedChunks)
+			.map(segment => segment.type === "text" ? segment.text : segment.display)
+			.join("");
+	}
+
 	class PaneController {
 		constructor({ doc, body }) {
 			this.doc = doc;
@@ -429,6 +464,8 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 			this.codexAvailable = false;
 			this.codexAuthenticated = false;
 			this.signingIn = false;
+			this.exporting = false;
+			this.messageData = new WeakMap();
 			this.destroyed = false;
 			this._build();
 			_controllers.add(this);
@@ -511,8 +548,13 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 			this.newChatButton = this._button("aitero-new-chat", "aitero-new-chat", () => {
 				this.clearConversation("new-chat");
 			});
+			this.exportButton = this._button("aitero-export-chat", "aitero-export-chat", () => {
+				void this.exportConversation();
+			});
+			this.exportButton.hidden = true;
 			actions.append(
 				this.signInButton,
+				this.exportButton,
 				this.newChatButton,
 				this.retryButton,
 				this.cancelButton,
@@ -579,6 +621,7 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 				l10nID,
 			);
 			button.type = "button";
+			button._aiteroL10nID = l10nID;
 			button.addEventListener("click", listener);
 			return button;
 		}
@@ -783,6 +826,7 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 
 			let assistantNode = null;
 			let transaction = null;
+			let selectedChunks = [];
 			try {
 				await this._refreshTargetRevision(
 					target,
@@ -806,6 +850,7 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 				}
 
 				let selection = AIteroPDF.selectPaperContext(data.chunks, question);
+				selectedChunks = selection.chunks;
 				this._showCoverage(data.coverage);
 				transaction = this.session.begin(
 					createQuestionInput(question),
@@ -819,6 +864,11 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 					let keepPinned = this._isConversationNearBottom();
 					streamed += delta;
 					assistantNode.textContent = streamed;
+					this.messageData.set(assistantNode, {
+						role: "assistant",
+						text: streamed,
+						incomplete: true,
+					});
 					this._setStatus("aitero-streaming");
 					if (keepPinned) this._scrollConversation(true);
 					else this._syncJumpButton();
@@ -885,6 +935,14 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 				if (assistantNode && !assistantNode.textContent) assistantNode.remove();
 				else if (assistantNode) {
 					assistantNode.classList.add("aitero-message-incomplete");
+					let data = this.messageData.get(assistantNode);
+					if (data?.text) {
+						this.messageData.set(assistantNode, {
+							...data,
+							text: readableCitationText(data.text, selectedChunks),
+							incomplete: true,
+						});
+					}
 					this.lastFailedAssistantNode = assistantNode;
 				}
 				this.lastFailedQuestion = question;
@@ -931,6 +989,7 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 			this.warningNode.hidden = true;
 			this.errorNode.hidden = true;
 			this.retryButton.hidden = true;
+			this._syncConversationActions();
 		}
 
 		_appendPlainMessage(role, text) {
@@ -941,7 +1000,9 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 				`aitero-message aitero-message-${role}`,
 			);
 			node.textContent = text;
+			this.messageData.set(node, { role, text, incomplete: false });
 			this.conversationNode.appendChild(node);
+			this._syncConversationActions();
 			this._scrollConversation(true);
 			return node;
 		}
@@ -1051,8 +1112,72 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 				appendInline(paragraph, block.text);
 				node.appendChild(paragraph);
 			}
+			this.messageData.set(node, {
+				role: "assistant",
+				text: readableCitationText(text, allowedChunks),
+				incomplete: false,
+			});
+			this._syncConversationActions();
 			if (keepPinned) this._scrollConversation(true);
 			else this._syncJumpButton();
+		}
+
+		_conversationMessages() {
+			return Array.from(this.conversationNode.querySelectorAll(".aitero-message"))
+				.map(node => this.messageData.get(node))
+				.filter(Boolean);
+		}
+
+		async exportConversation() {
+			let messages = this._conversationMessages();
+			if (!messages.length || this.exporting) return;
+			this.exporting = true;
+			this.exportButton.disabled = true;
+			try {
+				let { FilePicker } = ChromeUtils.importESModule(
+					"chrome://zotero/content/modules/filePicker.mjs",
+				);
+				let dialogTitle = await this.doc.l10n?.formatValue?.(
+					"aitero-export-dialog-title",
+				) || "Export AItero chat";
+				let picker = new FilePicker();
+				picker.init(this.win, dialogTitle, picker.modeSave);
+				picker.appendFilter("Markdown", "*.md");
+				picker.defaultExtension = "md";
+				picker.defaultString = exportFilename(this.target?.title);
+				let result = await picker.show();
+				if (result !== picker.returnOK && result !== picker.returnReplace) return;
+				await Zotero.File.putContentsAsync(
+					picker.file,
+					formatConversationMarkdown(this.target?.title, messages),
+				);
+				this._flashButtonLabel(this.exportButton, "aitero-exported");
+			}
+			catch (_error) {
+				this._setError("aitero-error-export", false);
+			}
+			finally {
+				this.exporting = false;
+				this.exportButton.disabled = Boolean(this.activeAbort) || this.signingIn;
+			}
+		}
+
+		_flashButtonLabel(button, l10nID) {
+			this.win.clearTimeout(button._aiteroLabelTimer);
+			button.removeAttribute("data-l10n-id");
+			button.textContent = "";
+			button.setAttribute("data-l10n-id", l10nID);
+			button._aiteroLabelTimer = this.win.setTimeout(() => {
+				if (this.destroyed || !button.isConnected) return;
+				button.removeAttribute("data-l10n-id");
+				button.textContent = "";
+				button.setAttribute("data-l10n-id", button._aiteroL10nID);
+			}, 1600);
+		}
+
+		_syncConversationActions() {
+			if (!this.exportButton) return;
+			this.exportButton.hidden = !this.conversationNode.querySelector(".aitero-message");
 		}
 
 		_appendInlineFormatting(parent, text) {
@@ -1200,6 +1325,7 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 			this.cancelButton.hidden = !busy;
 			this.input.disabled = busy || this.target?.kind !== "pdf";
 			this.newChatButton.disabled = busy;
+			this.exportButton.disabled = busy || this.exporting;
 			this._setControlDisabledState();
 		}
 
@@ -1256,9 +1382,10 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 		return controller;
 	}
 
-	async function init({ rootURI }) {
+	async function init({ rootURI, version }) {
 		if (_initialized) return;
 		_rootURI = rootURI;
+		_assetCacheKey = encodeURIComponent(`${version || "dev"}-${Date.now()}`);
 		_tabObserverID = Zotero.Notifier.registerObserver({
 			notify(action, type, ids) {
 				if (action !== "select" || type !== "tab") return;
@@ -1323,12 +1450,12 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 		mathLink.id = "aitero-assistant-math-stylesheet";
 		mathLink.rel = "stylesheet";
 		mathLink.type = "text/css";
-		mathLink.href = `${_rootURI}vendor/katex/katex.min.css`;
+		mathLink.href = `${_rootURI}vendor/katex/katex.min.css?aitero=${_assetCacheKey}`;
 		let link = win.document.createElementNS(HTML_NS, "link");
 		link.id = "aitero-assistant-stylesheet";
 		link.rel = "stylesheet";
 		link.type = "text/css";
-		link.href = `${_rootURI}content/style.css`;
+		link.href = `${_rootURI}content/style.css?aitero=${_assetCacheKey}`;
 		win.document.documentElement.append(mathLink, link);
 		let unload = () => removeFromWindow(win);
 		win.addEventListener("unload", unload, { once: true });
@@ -1370,6 +1497,7 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 		_tabObserverID = null;
 		_initialized = false;
 		_rootURI = null;
+		_assetCacheKey = null;
 	}
 
 	return {
@@ -1385,7 +1513,10 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 			selectionSignature,
 			createQuestionInput,
 			createRequestInput,
+			exportFilename,
+			formatConversationMarkdown,
 			parseMarkdownBlocks,
+			readableCitationText,
 			sourceContent,
 			safeExternalURL,
 			resolveProvider,

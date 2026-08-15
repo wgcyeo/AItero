@@ -7,7 +7,7 @@ The plugin does not modify Zotero items, notes, tags, collections, attachments, 
 ## At a glance
 
 - Plugin ID: `aitero-assistant@local`
-- Version: `0.2.0`
+- Version: `0.2.1`
 - License: Apache-2.0
 - Supported Zotero versions: `9.0` through `9.0.*`
 - Validated platform: macOS with the Homebrew `zotero` cask
@@ -30,6 +30,7 @@ The plugin does not modify Zotero items, notes, tags, collections, attachments, 
 - Full extracted-paper context by default, with retrieval only for oversized PDFs.
 - Cross-language questions work without requiring lexical overlap with the PDF.
 - Validated `[[cite:<chunk-id>]]` markers rendered as clickable `[PDF N]` buttons.
+- Selectable message text and user-initiated Markdown chat export with readable PDF page citations.
 - In-memory LRU cache for at most three PDFs; no plugin-owned disk index.
 - Automatic key discovery from the process environment, `~/.zshrc`, or `~/.bashrc`.
 - Codex-first provider that delegates authentication to the installed Codex CLI; AItero never reads or stores its tokens.
@@ -43,8 +44,8 @@ For complete installation, privacy, development, and troubleshooting instruction
 
 1. Download both assets from the private GitHub Release:
 
-   - `aitero-assistant-0.2.0.xpi`
-   - `aitero-assistant-0.2.0.xpi.sha256`
+   - `aitero-assistant-0.2.1.xpi`
+   - `aitero-assistant-0.2.1.xpi.sha256`
 
 2. Configure the preferred Codex provider or the API-key fallback:
 
@@ -109,6 +110,7 @@ These request settings are not equivalent to organization-level Zero Data Retent
 ## Session and data lifetime
 
 - Conversation history exists only in memory.
+- A chat is written to disk only when you choose **Export** and confirm a Markdown file location.
 - Closing the section, changing the item or Reader tab, starting a new chat, closing the window, quitting Zotero, or disabling the plugin cancels active work and clears the session.
 - Failed, cancelled, incomplete, and prematurely closed streams are never committed to follow-up history.
 - The plugin stores one non-secret random `safety_identifier` in Zotero preferences.
@@ -125,13 +127,13 @@ These request settings are not equivalent to organization-level Zero Data Retent
 7. A lexical no-match still selects distributed pages, so a cross-language question never produces an empty paper context.
 8. Only citations to chunks included in the request can become buttons. Invented IDs remain plain text.
 
-`[PDF N]` refers to the one-based PDF file page number, not a printed page label. AItero navigates using Zotero's zero-based `pageIndex`. Paragraph-level highlighting is outside the v0.2.0 scope.
+`[PDF N]` refers to the one-based PDF file page number, not a printed page label. AItero navigates using Zotero's zero-based `pageIndex`. Paragraph-level highlighting is outside the v0.2.1 scope.
 
 Image-only PDFs are not sent to OpenAI. AItero displays an OCR-required message instead. Partially extractable PDFs use only pages with text and display a coverage warning.
 
 ## Limitations
 
-Version 0.2.0 intentionally does not provide:
+Version 0.2.1 intentionally does not provide:
 
 - multi-paper comparison;
 - whole-library retrieval;
@@ -158,8 +160,8 @@ The packaging script sorts source paths and fixes ZIP timestamps, permissions, U
 Generated files:
 
 ```text
-dist/aitero-assistant-0.2.0.xpi
-dist/aitero-assistant-0.2.0.xpi.sha256
+dist/aitero-assistant-0.2.1.xpi
+dist/aitero-assistant-0.2.1.xpi.sha256
 ```
 
 ## Documentation

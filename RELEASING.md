@@ -47,11 +47,11 @@ npm run check:english
 npm run check:config
 npm test
 npm run package
-cp dist/aitero-assistant-0.2.0.xpi /tmp/aitero-release-first.xpi
+cp dist/aitero-assistant-0.2.1.xpi /tmp/aitero-release-first.xpi
 npm run package
-cmp /tmp/aitero-release-first.xpi dist/aitero-assistant-0.2.0.xpi
+cmp /tmp/aitero-release-first.xpi dist/aitero-assistant-0.2.1.xpi
 cd dist
-shasum -a 256 -c aitero-assistant-0.2.0.xpi.sha256
+shasum -a 256 -c aitero-assistant-0.2.1.xpi.sha256
 ```
 
 Adjust versioned filenames for later releases.
@@ -59,7 +59,7 @@ Adjust versioned filenames for later releases.
 Inspect package contents:
 
 ```sh
-unzip -l aitero-assistant-0.2.0.xpi
+unzip -l aitero-assistant-0.2.1.xpi
 ```
 
 The XPI should contain only the project license, plugin source, the English Fluent resource, icons, CSS, and vendored KaTeX assets. It must not contain Git metadata, tests, documentation, `.env` files, shell startup files, or credentials.
@@ -93,7 +93,7 @@ Never run a release smoke request on a private user-library document.
 git add --all
 git diff --cached --check
 git diff --cached
-git commit -m "Release AItero Assistant 0.2.0"
+git commit -m "Release AItero Assistant 0.2.1"
 git push origin main
 ```
 
@@ -104,8 +104,8 @@ Use the actual release version in the commit subject.
 Use an annotated tag:
 
 ```sh
-git tag -a v0.2.0 -m "AItero Assistant v0.2.0"
-git push origin v0.2.0
+git tag -a v0.2.1 -m "AItero Assistant v0.2.1"
+git push origin v0.2.1
 ```
 
 Pushing the tag starts the Release workflow.
@@ -132,13 +132,13 @@ The Release workflow:
 ## 9. Verify the Release
 
 ```sh
-gh release view v0.2.0 --repo wgcyeo/AItero
-gh release download v0.2.0 \
+gh release view v0.2.1 --repo wgcyeo/AItero
+gh release download v0.2.1 \
   --repo wgcyeo/AItero \
-  --pattern 'aitero-assistant-0.2.0.xpi*' \
+  --pattern 'aitero-assistant-0.2.1.xpi*' \
   --dir /tmp/aitero-release-download
 cd /tmp/aitero-release-download
-shasum -a 256 -c aitero-assistant-0.2.0.xpi.sha256
+shasum -a 256 -c aitero-assistant-0.2.1.xpi.sha256
 ```
 
 Confirm that the Release is associated with the intended tag and contains exactly the XPI and checksum assets.

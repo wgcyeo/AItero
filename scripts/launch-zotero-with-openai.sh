@@ -23,7 +23,7 @@ ZOTERO_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' 
 case "$ZOTERO_VERSION" in
   9.0|9.0.*) ;;
   *)
-    echo "AItero 0.2.0 requires Homebrew Zotero 9.0.x; found '${ZOTERO_VERSION:-unknown}'." >&2
+    echo "AItero 0.2.1 requires Homebrew Zotero 9.0.x; found '${ZOTERO_VERSION:-unknown}'." >&2
     exit 3
     ;;
 esac

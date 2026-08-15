@@ -153,9 +153,9 @@ Build the XPI twice before requesting review:
 
 ```sh
 npm run package
-cp dist/aitero-assistant-0.2.0.xpi /tmp/aitero-first.xpi
+cp dist/aitero-assistant-0.2.1.xpi /tmp/aitero-first.xpi
 npm run package
-cmp /tmp/aitero-first.xpi dist/aitero-assistant-0.2.0.xpi
+cmp /tmp/aitero-first.xpi dist/aitero-assistant-0.2.1.xpi
 ```
 
 The packaging script must continue to produce byte-identical output from identical source.

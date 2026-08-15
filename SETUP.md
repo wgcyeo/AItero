@@ -4,7 +4,7 @@ This guide covers installation from a private GitHub Release, building from sour
 
 ## 1. Supported configuration
 
-AItero 0.2.0 is intentionally narrow and version-pinned.
+AItero 0.2.1 is intentionally narrow and version-pinned.
 
 | Component | Supported value |
 | --- | --- |
@@ -29,11 +29,11 @@ There are two supported paths.
 Use this path when you only want to run AItero.
 
 1. Open the private repository's **Releases** page while signed in to GitHub.
-2. Open release `v0.2.0`.
+2. Open release `v0.2.1`.
 3. Download:
 
-   - `aitero-assistant-0.2.0.xpi`
-   - `aitero-assistant-0.2.0.xpi.sha256`
+   - `aitero-assistant-0.2.1.xpi`
+   - `aitero-assistant-0.2.1.xpi.sha256`
 
 4. Verify the XPI before installing it.
 
@@ -262,8 +262,8 @@ From a source build:
 ```sh
 npm run package
 cd dist
-shasum -a 256 aitero-assistant-0.2.0.xpi
-cat aitero-assistant-0.2.0.xpi.sha256
+shasum -a 256 aitero-assistant-0.2.1.xpi
+cat aitero-assistant-0.2.1.xpi.sha256
 ```
 
 The two digests must match exactly.
@@ -272,8 +272,8 @@ For a downloaded Release asset, place the XPI and sidecar in the same directory 
 
 ```sh
 cd /path/to/downloads
-shasum -a 256 aitero-assistant-0.2.0.xpi
-cat aitero-assistant-0.2.0.xpi.sha256
+shasum -a 256 aitero-assistant-0.2.1.xpi
+cat aitero-assistant-0.2.1.xpi.sha256
 ```
 
 Do not install an XPI whose digest differs from the published sidecar.
@@ -287,8 +287,8 @@ The XPI is locally built and unsigned. Install it only when it came from the pri
 3. Choose **Tools → Plugins**.
 4. Open the tools menu in the Plugins Manager.
 5. Choose **Install Plugin From File…**.
-6. Select `aitero-assistant-0.2.0.xpi`.
-7. Confirm that **AItero Assistant 0.2.0** appears and is enabled.
+6. Select `aitero-assistant-0.2.1.xpi`.
+7. Confirm that **AItero Assistant 0.2.1** appears and is enabled.
 8. Fully quit Zotero.
 9. Reopen Zotero normally.
 
@@ -398,7 +398,7 @@ When the model uses web search, Codex may additionally send generated search que
 
 ## 14. Upgrade procedure
 
-Private GitHub Release assets cannot be fetched automatically by Zotero without authentication. AItero 0.2.0 therefore uses manual updates.
+Private GitHub Release assets cannot be fetched automatically by Zotero without authentication. AItero 0.2.1 therefore uses manual updates.
 
 1. Download the new XPI and checksum sidecar from the private Release.
 2. Verify the checksum.

@@ -151,6 +151,8 @@
 	border-radius: 13px;
 	line-height: 1.52;
 	overflow-wrap: anywhere;
+	cursor: text;
+	user-select: text;
 	white-space: pre-wrap;
 }
 
@@ -394,6 +396,19 @@
 	background: color-mix(in srgb, currentColor 11%, transparent);
 }
 
+.aitero-button.aitero-export-chat {
+	min-height: 24px;
+	padding: 2px 5px;
+	border-color: transparent;
+	color: var(--fill-secondary, #66707a);
+	background: transparent;
+	font-size: 0.88em;
+}
+
+.aitero-button.aitero-export-chat:hover:not(:disabled) {
+	background: var(--aitero-surface);
+}
+
 .aitero-send,
 .aitero-cancel {
 	border-color: transparent;
@@ -425,6 +440,7 @@
 .aitero-cancel[hidden],
 .aitero-send[hidden],
 .aitero-codex-sign-in[hidden],
+.aitero-export-chat[hidden],
 .aitero-jump-latest[hidden],
 .aitero-warning[hidden],
 .aitero-error[hidden] {

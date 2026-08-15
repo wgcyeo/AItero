@@ -95,7 +95,7 @@ Also inspect staged changes and the XPI file list:
 
 ```sh
 git diff --cached
-unzip -l dist/aitero-assistant-0.2.0.xpi
+unzip -l dist/aitero-assistant-0.2.1.xpi
 ```
 
 Never run commands that print `OPENAI_API_KEY`. If a key appears in Git history or a Release asset, revoke it immediately, create a new key, remove the affected artifact, and treat the old key as compromised.

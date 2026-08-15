@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 
-global.AIteroPDF = {};
+global.AIteroPDF = require("../src/content/pdf.js");
 global.AIteroCompat = {};
 global.AIteroOpenAI = {};
 
@@ -240,6 +240,82 @@ test("ordered list blocks preserve their source number across blank-line splits"
 	]);
 });
 
+test("chat export produces a readable Markdown transcript", () => {
+	const markdown = assistant._test.formatConversationMarkdown(
+		"A paper\nwith a title",
+		[
+			{ role: "user", text: "What changed?" },
+			{ role: "assistant", text: "The result improved [PDF 5]." },
+			{ role: "assistant", text: "An interrupted answer", incomplete: true },
+		],
+	);
+	assert.equal(markdown, [
+		"# AItero chat",
+		"",
+		"Paper: A paper with a title",
+		"",
+		"## You",
+		"",
+		"What changed?",
+		"",
+		"## AItero",
+		"",
+		"The result improved [PDF 5].",
+		"",
+		"## AItero (partial)",
+		"",
+		"An interrupted answer",
+		"",
+	].join("\n"));
+});
+
+test("exported answers replace internal citation IDs with PDF pages", () => {
+	const chunk = {
+		id: "c_0123456789abcdef",
+		pageIndex: 4,
+		pageLabel: "iv",
+		text: "Evidence",
+	};
+	assert.equal(
+		assistant._test.readableCitationText(
+			"A supported claim [[cite:c_0123456789abcdef]].",
+			[chunk],
+		),
+		"A supported claim [PDF 5].",
+	);
+});
+
+test("chat export filenames remove cross-platform reserved characters", () => {
+	assert.equal(
+		assistant._test.exportFilename('Paper: a/b? <test>.  '),
+		"Paper a b test - AItero chat.md",
+	);
+	assert.equal(assistant._test.exportFilename("..."), "PDF - AItero chat.md");
+});
+
+test("chat UI exposes selectable messages and Markdown export", () => {
+	const source = fs.readFileSync(
+		path.join(__dirname, "..", "src", "content", "assistant.js"),
+		"utf8",
+	);
+	const ftl = fs.readFileSync(
+		path.join(__dirname, "..", "src", "locale", "en-US", "aitero.ftl"),
+		"utf8",
+	);
+	const css = fs.readFileSync(
+		path.join(__dirname, "..", "src", "content", "style.css"),
+		"utf8",
+	);
+	assert.doesNotMatch(source, /draggable|dragstart|setDragImage|dataTransfer/);
+	assert.match(source, /File\.putContentsAsync\(/);
+	assert.match(source, /formatConversationMarkdown\(this\.target\?\.title, messages\)/);
+	assert.doesNotMatch(source, /copyTextToClipboard|aitero-message-copy|aitero-copy-icon/);
+	assert.doesNotMatch(ftl, /aitero-copy-message|aitero-copied|aitero-error-copy/);
+	assert.match(ftl, /aitero-export-chat\s*=\s*Export/);
+	assert.match(css, /\.aitero-message\s*\{[\s\S]*?cursor:\s*text;[\s\S]*?user-select:\s*text/);
+	assert.match(css, /\.aitero-button\.aitero-export-chat\s*\{[\s\S]*?background:\s*transparent/);
+});
+
 test("chat CSS establishes an independently scrollable flex viewport", () => {
 	const css = fs.readFileSync(
 		path.join(__dirname, "..", "src", "content", "style.css"),
@@ -286,6 +362,9 @@ test("math rendering is bundled, resource-local, and treats model TeX as untrust
 	assert.match(source, /trust:\s*false/);
 	assert.match(source, /maxExpand:\s*500/);
 	assert.match(source, /loadSubScript\(`\$\{_rootURI\}vendor\/katex\/katex\.min\.js`, win\)/);
+	assert.match(source, /_assetCacheKey = encodeURIComponent\(`\$\{version \|\| "dev"\}-\$\{Date\.now\(\)\}`\)/);
+	assert.match(source, /katex\/katex\.min\.css\?aitero=\$\{_assetCacheKey\}/);
+	assert.match(source, /content\/style\.css\?aitero=\$\{_assetCacheKey\}/);
 	assert.doesNotMatch(source, /https?:\/\/[^`"']*katex/i);
 });
 

@@ -4,6 +4,19 @@ All notable changes to AItero Assistant are documented here.
 
 The project follows semantic versioning for Release tags.
 
+## Unreleased
+
+## 0.2.1 - 2026-08-15
+
+### Added
+
+- Partial text selection within user and assistant messages.
+- User-initiated Markdown export for the visible chat transcript.
+
+### Fixed
+
+- Reload plugin styles with a per-startup cache key so same-version XPI updates take effect immediately.
+
 ## 0.2.0 - 2026-08-14
 
 ### Added
