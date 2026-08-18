@@ -6,6 +6,17 @@ The project follows semantic versioning for Release tags.
 
 ## Unreleased
 
+## 0.3.0 - 2026-08-18
+
+### Changed
+
+- Updated the manifest, launcher, documentation, and packaging metadata for Zotero 10.0.x.
+- Revalidated the page-safe PDF extraction and citation navigation adapters against Zotero 10.0.
+
+### Removed
+
+- Zotero 9 support. AItero 0.2.x remains the final Zotero 9-compatible line.
+
 ## 0.2.1 - 2026-08-15
 
 ### Added

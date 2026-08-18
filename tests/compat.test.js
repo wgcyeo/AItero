@@ -48,7 +48,7 @@ test("reader character reconstruction honors spaces and paragraph breaks", () =>
 	]}), "A B\n\nC");
 });
 
-test("Zotero 9 worker fallback requests exact zero-based pages", async () => {
+test("Zotero 10 worker fallback requests exact zero-based pages", async () => {
 	const calls = [];
 	global.Zotero = {
 		PDFWorker: {
@@ -63,7 +63,7 @@ test("Zotero 9 worker fallback requests exact zero-based pages", async () => {
 			},
 		},
 	};
-	const pages = await compat.extractWithZotero9PerPageWorker(9, 3);
+	const pages = await compat.extractWithZotero10PerPageWorker(9, 3);
 	assert.deepEqual(calls, [[0], [1], [2]]);
 	assert.deepEqual(pages.map(page => page.text), ["page-1", "", "page-3"]);
 });

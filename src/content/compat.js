@@ -1,5 +1,5 @@
 /*
- * Zotero 9 compatibility adapter. All private reader/PDF fallbacks live here
+ * Zotero 10 compatibility adapter. All private reader/PDF fallbacks live here
  * so future Zotero support can be updated without touching search, transport,
  * or UI code.
  */
@@ -99,11 +99,11 @@ var AIteroCompat = (() => {
 	}
 
 	/*
-	 * The Zotero 9.0.6 manager documents this argument as maxPages, but its
+	 * The Zotero 10.0 manager documents this argument as maxPages, but its
 	 * bundled document worker also accepts an array of exact zero-based page
 	 * indexes. Keep this private, version-gated behavior isolated here.
 	 */
-	async function extractWithZotero9PerPageWorker(attachmentId, totalPages) {
+	async function extractWithZotero10PerPageWorker(attachmentId, totalPages) {
 		if (!Number.isInteger(totalPages) || totalPages < 1) return null;
 		let pages = [];
 		for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
@@ -150,11 +150,11 @@ var AIteroCompat = (() => {
 			if (pages) return { pages, source: "reader" };
 		}
 		catch (_error) {
-			// Continue to the Zotero 9 worker fallback.
+			// Continue to the Zotero 10 worker fallback.
 		}
 
 		try {
-			pages = await extractWithZotero9PerPageWorker(
+			pages = await extractWithZotero10PerPageWorker(
 				attachmentId,
 				Number(initial?.totalPages),
 			);
@@ -183,7 +183,7 @@ var AIteroCompat = (() => {
 		PdfExtractionError,
 		extractPdfPages,
 		extractWithOpenReader,
-		extractWithZotero9PerPageWorker,
+		extractWithZotero10PerPageWorker,
 		getActiveReader,
 		isPdfAttachment,
 		navigateToPage,

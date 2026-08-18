@@ -4,13 +4,13 @@ This guide covers installation from a private GitHub Release, building from sour
 
 ## 1. Supported configuration
 
-AItero 0.2.1 is intentionally narrow and version-pinned.
+AItero 0.3.0 is intentionally narrow and version-pinned.
 
 | Component | Supported value |
 | --- | --- |
 | Operating system | macOS |
 | Zotero distribution | Homebrew cask `zotero` |
-| Zotero version | `9.0` through `9.0.*` |
+| Zotero version | `10.0` through `10.0.*` |
 | CPU | Apple Silicon or Intel |
 | Node.js for builds | 18 or newer; CI uses Node.js 22 |
 | OpenAI providers | Responses API key, or Codex CLI with ChatGPT sign-in |
@@ -18,7 +18,7 @@ AItero 0.2.1 is intentionally narrow and version-pinned.
 | Codex default | `gpt-5.6-sol`, xhigh reasoning, fast service tier |
 | Plugin UI | English |
 
-Do not install this release on Zotero 10 or later. The public item-pane integration is stable, but the page-text compatibility adapter is explicitly tied to Zotero 9 internals.
+Do not install this release on Zotero 9 or Zotero 11 and later. The public item-pane integration is stable, but the page-text compatibility adapter is explicitly tied to Zotero 10 internals.
 
 ## 2. Choose an installation path
 
@@ -29,11 +29,11 @@ There are two supported paths.
 Use this path when you only want to run AItero.
 
 1. Open the private repository's **Releases** page while signed in to GitHub.
-2. Open release `v0.2.1`.
+2. Open release `v0.3.0`.
 3. Download:
 
-   - `aitero-assistant-0.2.1.xpi`
-   - `aitero-assistant-0.2.1.xpi.sha256`
+   - `aitero-assistant-0.3.0.xpi`
+   - `aitero-assistant-0.3.0.xpi.sha256`
 
 4. Verify the XPI before installing it.
 
@@ -63,7 +63,7 @@ brew info --cask zotero
   /Applications/Zotero.app/Contents/Info.plist
 ```
 
-The final command must print a `9.0.x` version. If Zotero is not installed and this Mac is intended to use the Homebrew distribution, install it with:
+The final command must print a `10.0.x` version. If Zotero is not installed and this Mac is intended to use the Homebrew distribution, install it with:
 
 ```sh
 brew install --cask zotero
@@ -249,7 +249,7 @@ The launcher:
 
 - requires a non-empty key;
 - requires the Homebrew `zotero` cask;
-- requires Zotero `9.0.x`;
+- requires Zotero `10.0.x`;
 - refuses to terminate an already-running Zotero process; and
 - executes the Homebrew application binary directly without printing the key.
 
@@ -262,8 +262,8 @@ From a source build:
 ```sh
 npm run package
 cd dist
-shasum -a 256 aitero-assistant-0.2.1.xpi
-cat aitero-assistant-0.2.1.xpi.sha256
+shasum -a 256 aitero-assistant-0.3.0.xpi
+cat aitero-assistant-0.3.0.xpi.sha256
 ```
 
 The two digests must match exactly.
@@ -272,8 +272,8 @@ For a downloaded Release asset, place the XPI and sidecar in the same directory 
 
 ```sh
 cd /path/to/downloads
-shasum -a 256 aitero-assistant-0.2.1.xpi
-cat aitero-assistant-0.2.1.xpi.sha256
+shasum -a 256 aitero-assistant-0.3.0.xpi
+cat aitero-assistant-0.3.0.xpi.sha256
 ```
 
 Do not install an XPI whose digest differs from the published sidecar.
@@ -287,8 +287,8 @@ The XPI is locally built and unsigned. Install it only when it came from the pri
 3. Choose **Tools → Plugins**.
 4. Open the tools menu in the Plugins Manager.
 5. Choose **Install Plugin From File…**.
-6. Select `aitero-assistant-0.2.1.xpi`.
-7. Confirm that **AItero Assistant 0.2.1** appears and is enabled.
+6. Select `aitero-assistant-0.3.0.xpi`.
+7. Confirm that **AItero Assistant 0.3.0** appears and is enabled.
 8. Fully quit Zotero.
 9. Reopen Zotero normally.
 
@@ -398,7 +398,7 @@ When the model uses web search, Codex may additionally send generated search que
 
 ## 14. Upgrade procedure
 
-Private GitHub Release assets cannot be fetched automatically by Zotero without authentication. AItero 0.2.1 therefore uses manual updates.
+Private GitHub Release assets cannot be fetched automatically by Zotero without authentication. AItero 0.3.0 therefore uses manual updates.
 
 1. Download the new XPI and checksum sidecar from the private Release.
 2. Verify the checksum.
@@ -408,7 +408,7 @@ Private GitHub Release assets cannot be fetched automatically by Zotero without 
 6. Restart Zotero.
 7. Confirm the version and run the first-run validation steps.
 
-The manifest contains an inert `.invalid` update URL because Zotero 9 requires the field. No secret or GitHub token is embedded in the XPI.
+The manifest contains an inert `.invalid` update URL required by the Zotero plugin manifest format. No secret or GitHub token is embedded in the XPI.
 
 ## 15. Uninstall and rollback
 
@@ -460,7 +460,7 @@ AItero does not modify the Zotero database, so there is no database migration or
 
 ### The AI Assistant icon is missing
 
-- Confirm Zotero is `9.0.x`.
+- Confirm Zotero is `10.0.x`.
 - Confirm the plugin is enabled under **Tools → Plugins**.
 - Confirm exactly one standard item or PDF is selected.
 - Restart Zotero after installing or updating the XPI.
@@ -483,7 +483,7 @@ The plugin detected a partially extractable PDF. It sends only pages containing 
 ### Citation buttons do not navigate
 
 - Confirm the attachment still exists locally.
-- Confirm Zotero is `9.0.x`.
+- Confirm Zotero is `10.0.x`.
 - Reopen the PDF and retry the citation.
 - A citation uses PDF file page order, not the printed page label.
 

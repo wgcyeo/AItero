@@ -1,15 +1,15 @@
 # AItero Assistant
 
-AItero Assistant is a local Zotero 9 plugin that adds a full-height AI chat section to the library item pane and the PDF Reader sidebar. It answers questions about the currently selected PDF, streams the response, renders safe Markdown and LaTeX, and turns validated citations into buttons that open the corresponding PDF page.
+AItero Assistant is a local Zotero 10 plugin that adds a full-height AI chat section to the library item pane and the PDF Reader sidebar. It answers questions about the currently selected PDF, streams the response, renders safe Markdown and LaTeX, and turns validated citations into buttons that open the corresponding PDF page.
 
 The plugin does not modify Zotero items, notes, tags, collections, attachments, or the Zotero database. It does not require a Zotero fork, an OpenAI SDK, or a local web server.
 
 ## At a glance
 
 - Plugin ID: `aitero-assistant@local`
-- Version: `0.2.1`
+- Version: `0.3.0`
 - License: Apache-2.0
-- Supported Zotero versions: `9.0` through `9.0.*`
+- Supported Zotero versions: `10.0` through `10.0.*`
 - Validated platform: macOS with the Homebrew `zotero` cask
 - API-key default: `gpt-5.6-luna`, medium reasoning
 - Codex default: `gpt-5.6-sol`, xhigh reasoning, fast service tier
@@ -44,8 +44,8 @@ For complete installation, privacy, development, and troubleshooting instruction
 
 1. Download both assets from the private GitHub Release:
 
-   - `aitero-assistant-0.2.1.xpi`
-   - `aitero-assistant-0.2.1.xpi.sha256`
+   - `aitero-assistant-0.3.0.xpi`
+   - `aitero-assistant-0.3.0.xpi.sha256`
 
 2. Configure the preferred Codex provider or the API-key fallback:
 
@@ -119,7 +119,7 @@ These request settings are not equivalent to organization-level Zero Data Retent
 ## PDF retrieval and citations
 
 1. The Zotero PDF worker result is trusted only when page counts, extracted page counts, and form-feed boundaries agree.
-2. If validation fails, AItero uses a Reader page-text adapter and then a Zotero 9 page-specific worker fallback.
+2. If validation fails, AItero uses a Reader page-text adapter and then a Zotero 10 page-specific worker fallback.
 3. Chunks never cross PDF page boundaries. The default target is approximately 1,200 characters with a 200-character overlap.
 4. AItero sends every extractable page chunk when the serialized context is at most 750,000 characters, including the 200-character overlaps.
 5. The full-paper message is rebuilt as a stable request prefix and is not duplicated into in-memory conversation history.
@@ -127,13 +127,13 @@ These request settings are not equivalent to organization-level Zero Data Retent
 7. A lexical no-match still selects distributed pages, so a cross-language question never produces an empty paper context.
 8. Only citations to chunks included in the request can become buttons. Invented IDs remain plain text.
 
-`[PDF N]` refers to the one-based PDF file page number, not a printed page label. AItero navigates using Zotero's zero-based `pageIndex`. Paragraph-level highlighting is outside the v0.2.1 scope.
+`[PDF N]` refers to the one-based PDF file page number, not a printed page label. AItero navigates using Zotero's zero-based `pageIndex`. Paragraph-level highlighting is outside the v0.3.0 scope.
 
 Image-only PDFs are not sent to OpenAI. AItero displays an OCR-required message instead. Partially extractable PDFs use only pages with text and display a coverage warning.
 
 ## Limitations
 
-Version 0.2.1 intentionally does not provide:
+Version 0.3.0 intentionally does not provide:
 
 - multi-paper comparison;
 - whole-library retrieval;
@@ -144,7 +144,7 @@ Version 0.2.1 intentionally does not provide:
 - paragraph highlighting; or
 - automatic updates from the private repository.
 
-The Zotero 9 PDF compatibility adapter uses version-specific internal APIs. The manifest therefore caps compatibility at `9.0.*`.
+The Zotero 10 PDF compatibility adapter uses version-specific internal APIs. The manifest therefore caps compatibility at `10.0.*`.
 
 ## Development
 
@@ -160,8 +160,8 @@ The packaging script sorts source paths and fixes ZIP timestamps, permissions, U
 Generated files:
 
 ```text
-dist/aitero-assistant-0.2.1.xpi
-dist/aitero-assistant-0.2.1.xpi.sha256
+dist/aitero-assistant-0.3.0.xpi
+dist/aitero-assistant-0.3.0.xpi.sha256
 ```
 
 ## Documentation

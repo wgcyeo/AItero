@@ -4,7 +4,8 @@
 
 | Version | Zotero | Security updates |
 | --- | --- | --- |
-| 0.2.x | 9.0.x | Supported |
+| 0.3.x | 10.0.x | Supported |
+| 0.2.x | 9.0.x | Not supported |
 
 The Zotero compatibility boundary is enforced by `strict_min_version` and `strict_max_version` in `src/manifest.json`.
 
@@ -95,7 +96,7 @@ Also inspect staged changes and the XPI file list:
 
 ```sh
 git diff --cached
-unzip -l dist/aitero-assistant-0.2.1.xpi
+unzip -l dist/aitero-assistant-0.3.0.xpi
 ```
 
 Never run commands that print `OPENAI_API_KEY`. If a key appears in Git history or a Release asset, revoke it immediately, create a new key, remove the affected artifact, and treat the old key as compromised.

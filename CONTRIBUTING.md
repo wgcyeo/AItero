@@ -1,13 +1,13 @@
 # Contributing to AItero
 
-This repository is private. Contributions should preserve the plugin's narrow read-only scope, Zotero 9 compatibility boundary, and local credential model.
+This repository is private. Contributions should preserve the plugin's narrow read-only scope, Zotero 10 compatibility boundary, and local credential model.
 
 ## Development environment
 
 Required:
 
 - macOS for Zotero integration testing;
-- Zotero 9.0.x from the Homebrew cask;
+- Zotero 10.0.x from the Homebrew cask;
 - Node.js 18 or newer; and
 - npm with the committed lockfile.
 
@@ -83,7 +83,7 @@ Keep responsibilities separated:
 - `src/content/pdf.js` — pure PDF page, chunk, retrieval, cache, and citation logic;
 - `src/content/openai.js` — request construction, SSE parsing, typed errors, and history transactions;
 - `src/content/codex.js` — Codex App Server lifecycle, authentication delegation, JSONL protocol, and agent-tool policy;
-- `src/content/compat.js` — Zotero 9 internal PDF and Reader adapters;
+- `src/content/compat.js` — Zotero 10 internal PDF and Reader adapters;
 - `src/content/assistant.js` — Zotero UI, lifecycle, credential discovery, and orchestration;
 - `src/content/style.css` — pane layout and rendering styles; and
 - `src/locale/en-US/aitero.ftl` — UI strings.
@@ -153,9 +153,9 @@ Build the XPI twice before requesting review:
 
 ```sh
 npm run package
-cp dist/aitero-assistant-0.2.1.xpi /tmp/aitero-first.xpi
+cp dist/aitero-assistant-0.3.0.xpi /tmp/aitero-first.xpi
 npm run package
-cmp /tmp/aitero-first.xpi dist/aitero-assistant-0.2.1.xpi
+cmp /tmp/aitero-first.xpi dist/aitero-assistant-0.3.0.xpi
 ```
 
 The packaging script must continue to produce byte-identical output from identical source.
@@ -170,4 +170,4 @@ The packaging script must continue to produce byte-identical output from identic
 - [ ] The XPI checksum sidecar validates.
 - [ ] No credentials or private document content appear in the diff.
 - [ ] Relevant documentation is updated.
-- [ ] Zotero 9.0.x integration was tested in an isolated profile when UI or compatibility code changed.
+- [ ] Zotero 10.0.x integration was tested in an isolated profile when UI or compatibility code changed.

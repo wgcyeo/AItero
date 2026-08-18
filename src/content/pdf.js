@@ -98,7 +98,7 @@ var AIteroPDF = (() => {
   }
 
   /**
-   * Map Zotero 9.0.6 PDFWorker output to canonical zero-based pages.
+   * Map Zotero 10.0 PDFWorker output to canonical zero-based pages.
    *
    * The worker trims its aggregate string, so leading/trailing blank pages can
    * remove form-feed separators. The map is therefore trusted only when every
