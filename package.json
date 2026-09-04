@@ -22,6 +22,6 @@
     "node": ">=18"
   },
   "dependencies": {
-    "katex": "0.18.4"
+    "katex": "0.18.5"
   }
 }
