@@ -20,13 +20,14 @@ fi
 
 ZOTERO_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' \
   "/Applications/Zotero.app/Contents/Info.plist" 2>/dev/null || true)
-case "$ZOTERO_VERSION" in
-  10.0|10.0.*) ;;
-  *)
-    echo "AItero 0.3.0 requires Homebrew Zotero 10.0.x; found '${ZOTERO_VERSION:-unknown}'." >&2
-    exit 3
-    ;;
+ZOTERO_MAJOR=${ZOTERO_VERSION%%.*}
+case "$ZOTERO_MAJOR" in
+  ''|*[!0-9]*) ZOTERO_MAJOR=0 ;;
 esac
+if [ "$ZOTERO_MAJOR" -lt 10 ]; then
+  echo "AItero requires Homebrew Zotero 10 or later; found '${ZOTERO_VERSION:-unknown}'." >&2
+  exit 3
+fi
 
 if pgrep -x "zotero" >/dev/null 2>&1 || pgrep -f '/Zotero\.app/Contents/MacOS/(zotero|plugin-container)' >/dev/null 2>&1; then
   echo "Zotero is already running; quit it normally before using this launcher." >&2

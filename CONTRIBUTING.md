@@ -1,6 +1,6 @@
 # Contributing to AItero
 
-This repository is private. Contributions should preserve the plugin's narrow read-only scope, Zotero 10 compatibility boundary, and local credential model.
+This repository is private. Contributions should preserve the plugin's narrow read-only scope, Zotero 10-or-later compatibility, and local credential model.
 
 ## Development environment
 
@@ -83,7 +83,7 @@ Keep responsibilities separated:
 - `src/content/pdf.js` — pure PDF page, chunk, retrieval, cache, and citation logic;
 - `src/content/openai.js` — request construction, SSE parsing, typed errors, and history transactions;
 - `src/content/codex.js` — Codex App Server lifecycle, authentication delegation, JSONL protocol, and agent-tool policy;
-- `src/content/compat.js` — Zotero 10 internal PDF and Reader adapters;
+- `src/content/compat.js` — validated internal PDF and Reader adapters;
 - `src/content/assistant.js` — Zotero UI, lifecycle, credential discovery, and orchestration;
 - `src/content/style.css` — pane layout and rendering styles; and
 - `src/locale/en-US/aitero.ftl` — UI strings.

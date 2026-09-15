@@ -103,7 +103,7 @@ test("tool configuration independently gates web search and parallel agents", ()
 	assert.equal(research.web_search, "live");
 	assert.equal(research.agents.enabled, true);
 	assert.equal(research.agents.max_concurrent_threads_per_session, 3);
-	assert.equal(research.agents.default_subagent_model, "gpt-5.6-sol");
+	assert.equal(research.agents.default_subagent_model, "gpt-6-astra");
 	assert.equal(research.agents.default_subagent_reasoning_effort, "xhigh");
 	assert.equal(research.features.fast_mode, true);
 	assert.equal(
@@ -148,7 +148,7 @@ test("ChatGPT browser login is delegated to App Server without exposing tokens",
 	assert.equal(connection.requests.at(-1).params.refreshToken, false);
 });
 
-test("portable defaults use gpt-5.6-sol (xhigh, fast), no approvals, and an ephemeral read-only thread", async () => {
+test("portable defaults use gpt-6-astra (xhigh, fast), no approvals, and an ephemeral read-only thread", async () => {
 	const deltas = [];
 	const activities = [];
 	const connection = new FakeConnection({
@@ -197,7 +197,7 @@ test("portable defaults use gpt-5.6-sol (xhigh, fast), no approvals, and an ephe
 	assert.deepEqual(activities, ["webSearch", "collabAgentToolCall"]);
 	const threadStart = connection.requests.find(call => call.method === "thread/start");
 	assert.equal(threadStart.params.ephemeral, true);
-	assert.equal(threadStart.params.model, "gpt-5.6-sol");
+	assert.equal(threadStart.params.model, "gpt-6-astra");
 	assert.equal(threadStart.params.serviceTier, "fast");
 	assert.equal(threadStart.params.sandbox, "read-only");
 	assert.equal(threadStart.params.approvalPolicy, "never");

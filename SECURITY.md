@@ -4,7 +4,8 @@
 
 | Version | Zotero | Security updates |
 | --- | --- | --- |
-| 0.3.x | 10.0.x | Supported |
+| 0.3.1+ | 10.0 and later (validated on 10.0.2) | Supported |
+| 0.3.0 | 10.0.x | Superseded |
 | 0.2.x | 9.0.x | Not supported |
 
 The Zotero compatibility boundary is enforced by `strict_min_version` and `strict_max_version` in `src/manifest.json`.
@@ -96,7 +97,7 @@ Also inspect staged changes and the XPI file list:
 
 ```sh
 git diff --cached
-unzip -l dist/aitero-assistant-0.3.0.xpi
+unzip -l dist/aitero-assistant-0.3.1.xpi
 ```
 
 Never run commands that print `OPENAI_API_KEY`. If a key appears in Git history or a Release asset, revoke it immediately, create a new key, remove the affected artifact, and treat the old key as compromised.
@@ -117,7 +118,7 @@ When useful, Codex may send model-generated web-search queries. The developer in
 
 Parallel research agents receive only prompts delegated by the parent model. They remain inside the same Codex session tree and inherit the parent's read-only sandbox. Their use can increase token consumption.
 
-The Codex provider fixes the parent and default subagents to GPT-5.6 Sol with xhigh reasoning and fast service tier. GPT-5.6 fast mode consumes ChatGPT credits at 2.5 times the Standard rate, so parallel delegation can multiply an already higher-cost setting.
+The Codex provider fixes the parent and default subagents to GPT-6 Astra with xhigh reasoning and fast service tier. The API-key provider uses the same defaults unless `OPENAI_MODEL` overrides the model. Fast mode and parallel delegation affect usage; see the official [model documentation](https://developers.openai.com/api/docs/models/gpt-6-astra) for current details.
 
 Do not test with confidential PDFs unless the account policy, document owner, and intended processing all permit the transfer.
 

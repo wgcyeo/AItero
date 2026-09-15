@@ -8,7 +8,7 @@ var AIteroCodex = (() => {
 	const DEFAULT_INACTIVITY_TIMEOUT_MS = 180000;
 	const LOGIN_TIMEOUT_MS = 300000;
 	const MAX_PROTOCOL_LINE_LENGTH = 16 * 1024 * 1024;
-	const DEFAULT_CODEX_MODEL = "gpt-5.6-sol";
+	const DEFAULT_CODEX_MODEL = "gpt-6-astra";
 	const DEFAULT_CODEX_REASONING_EFFORT = "xhigh";
 	const DEFAULT_CODEX_SERVICE_TIER = "fast";
 	const APP_SERVER_ARGUMENTS = [
@@ -93,7 +93,7 @@ var AIteroCodex = (() => {
 			? `Web search is available. Use it only when current or outside information materially improves the answer. Never put verbatim PDF excerpts, chunk IDs, local paths, personal identifiers, or confidential paper details into a search query. Clearly distinguish web-sourced claims from paper-grounded claims and provide normal Markdown links to web sources.`
 			: "Web search is disabled. Do not attempt to search the web.";
 		let agents = enableParallelAgents
-			? `Parallel research agents are available, with at most three children at once. Delegate only genuinely separable research or analysis lanes, wait for all useful children, and synthesize their results. Spawn children without model or reasoning-effort overrides so they inherit the configured GPT-5.6 Sol xhigh defaults. Children share the same read-only and tool restrictions as this turn.`
+			? `Parallel research agents are available, with at most three children at once. Delegate only genuinely separable research or analysis lanes, wait for all useful children, and synthesize their results. Spawn children without model or reasoning-effort overrides so they inherit the configured ${DEFAULT_CODEX_MODEL} ${DEFAULT_CODEX_REASONING_EFFORT} defaults. Children share the same read-only and tool restrictions as this turn.`
 			: "Parallel research agents are disabled. Do not attempt to spawn or message subagents.";
 		return `${web}\n${agents}\nShell commands, local file reads, local file writes, code execution, MCP tools, connectors, image tools, and approval requests are forbidden. Do not attempt to use them.`;
 	}

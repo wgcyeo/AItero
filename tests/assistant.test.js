@@ -175,7 +175,7 @@ test("pane Fluent messages localize attributes without replacing the custom body
 	assert.match(ftl, /aitero-pane-header\s*=\s*\n\s+\.label\s*=/);
 	assert.match(ftl, /aitero-pane-sidenav\s*=\s*\n\s+\.tooltiptext\s*=/);
 	assert.match(ftl, /^aitero-pane-header[ \t]*=[ \t]*$/m);
-	assert.match(ftl, /aitero-ready-codex\s*=\s*Ready · Codex · gpt-5\.6-sol \(xhigh, fast\)/);
+	assert.match(ftl, /aitero-ready-codex\s*=\s*Ready · Codex · gpt-6-astra \(xhigh, fast\)/);
 });
 
 test("safe markdown blocks recognize headings, lists, tables, code, and paragraphs", () => {

@@ -1,5 +1,5 @@
 /*
- * Zotero 10 compatibility adapter. All private reader/PDF fallbacks live here
+ * Zotero 10+ compatibility adapter. All private reader/PDF fallbacks live here
  * so future Zotero support can be updated without touching search, transport,
  * or UI code.
  */
@@ -101,9 +101,10 @@ var AIteroCompat = (() => {
 	/*
 	 * The Zotero 10.0 manager documents this argument as maxPages, but its
 	 * bundled document worker also accepts an array of exact zero-based page
-	 * indexes. Keep this private, version-gated behavior isolated here.
+	 * indexes. Validate page counts on every call and reject unsupported results
+	 * instead of assigning unverified page numbers on newer Zotero versions.
 	 */
-	async function extractWithZotero10PerPageWorker(attachmentId, totalPages) {
+	async function extractWithPerPageWorker(attachmentId, totalPages) {
 		if (!Number.isInteger(totalPages) || totalPages < 1) return null;
 		let pages = [];
 		for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
@@ -150,11 +151,11 @@ var AIteroCompat = (() => {
 			if (pages) return { pages, source: "reader" };
 		}
 		catch (_error) {
-			// Continue to the Zotero 10 worker fallback.
+			// Continue to the validated per-page worker fallback.
 		}
 
 		try {
-			pages = await extractWithZotero10PerPageWorker(
+			pages = await extractWithPerPageWorker(
 				attachmentId,
 				Number(initial?.totalPages),
 			);
@@ -170,12 +171,15 @@ var AIteroCompat = (() => {
 	async function navigateToPage({ win, attachmentId, pageIndex }) {
 		let current = getActiveReader(win, attachmentId);
 		if (current?.navigate) {
+			await current._initPromise;
 			await current.navigate({ pageIndex });
 			return current;
 		}
 
 		let opened = await Zotero.Reader.open(attachmentId, { pageIndex });
-		if (opened?.navigate) await opened.navigate({ pageIndex });
+		// Reader.open applies the location during initialization. Calling navigate
+		// again before the internal reader exists throws on Zotero 10.
+		await opened?._initPromise;
 		return opened;
 	}
 
@@ -183,7 +187,7 @@ var AIteroCompat = (() => {
 		PdfExtractionError,
 		extractPdfPages,
 		extractWithOpenReader,
-		extractWithZotero10PerPageWorker,
+		extractWithPerPageWorker,
 		getActiveReader,
 		isPdfAttachment,
 		navigateToPage,

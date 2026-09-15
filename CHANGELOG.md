@@ -6,6 +6,23 @@ The project follows semantic versioning for Release tags.
 
 ## Unreleased
 
+## 0.3.1 - 2026-09-15
+
+### Changed
+
+- Allow installation and the macOS launcher on Zotero 10 and later, removing the 10.0.x upper bound.
+- Default Codex parent and research agents to `gpt-6-astra` with xhigh reasoning and fast service tier.
+- Default the API-key provider to `gpt-6-astra` with xhigh reasoning and fast service tier; preserve explicit model overrides.
+- Keep page-count validation for private PDF worker fallbacks so unsupported results fail without producing unverified citations.
+
+### Fixed
+
+- Wait for PDF Reader initialization before citation navigation and avoid a duplicate navigation when opening a PDF.
+
+### Compatibility
+
+- Validated runtime: Zotero 10.0.2 on macOS. Later versions are allowed by the manifest but still require integration testing as internal APIs evolve.
+
 ## 0.3.0 - 2026-08-18
 
 ### Changed

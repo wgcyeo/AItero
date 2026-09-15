@@ -9,8 +9,8 @@ var AIteroPDF = (() => {
   const BROAD_MAX_CHARS = 50000;
   const DEFAULT_DISTRIBUTED_CHUNKS = 9;
   // This cap applies to the serialized, overlapping SOURCE chunks, not the
-  // raw PDF character count. It leaves substantial headroom in GPT-5.6
-  // Luna's context window for instructions, follow-up turns, and output.
+  // raw PDF character count. It leaves substantial headroom in GPT-6
+  // Astra's context window for instructions, follow-up turns, and output.
   const FULL_CONTEXT_MAX_CHARS = 750000;
 
   function isNonNegativeInteger(value) {

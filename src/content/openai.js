@@ -2,7 +2,7 @@ var AIteroOpenAI = (() => {
 	"use strict";
 
 	const RESPONSES_URL = "https://api.openai.com/v1/responses";
-	const DEFAULT_MODEL = "gpt-5.6-luna";
+	const DEFAULT_MODEL = "gpt-6-astra";
 	const DEFAULT_MAX_OUTPUT_TOKENS = 8192;
 	const DEFAULT_INACTIVITY_TIMEOUT_MS = 180000;
 
@@ -150,11 +150,12 @@ var AIteroOpenAI = (() => {
 			throw new OpenAIConfigurationError("max_output_tokens must be a positive integer.");
 		}
 
+		const isAstra = /^gpt-6-astra(?:-|$)/.test(model);
 		const body = {
 			model,
 			input,
 			reasoning: {
-				effort: "medium",
+				effort: isAstra ? "xhigh" : "medium",
 				context: "all_turns",
 			},
 			max_output_tokens: maxOutputTokens,
@@ -162,6 +163,7 @@ var AIteroOpenAI = (() => {
 			stream: true,
 			safety_identifier: assertSafetyIdentifier(safetyIdentifier),
 		};
+		if (isAstra) body.service_tier = "fast";
 		if (instructions !== undefined && instructions !== null && instructions !== "") {
 			body.instructions = instructions;
 		}

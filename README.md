@@ -1,18 +1,18 @@
 # AItero Assistant
 
-AItero Assistant is a local Zotero 10 plugin that adds a full-height AI chat section to the library item pane and the PDF Reader sidebar. It answers questions about the currently selected PDF, streams the response, renders safe Markdown and LaTeX, and turns validated citations into buttons that open the corresponding PDF page.
+AItero Assistant is a local plugin for Zotero 10 and later that adds a full-height AI chat section to the library item pane and the PDF Reader sidebar. It answers questions about the currently selected PDF, streams the response, renders safe Markdown and LaTeX, and turns validated citations into buttons that open the corresponding PDF page.
 
 The plugin does not modify Zotero items, notes, tags, collections, attachments, or the Zotero database. It does not require a Zotero fork, an OpenAI SDK, or a local web server.
 
 ## At a glance
 
 - Plugin ID: `aitero-assistant@local`
-- Version: `0.3.0`
+- Version: `0.3.1`
 - License: Apache-2.0
-- Supported Zotero versions: `10.0` through `10.0.*`
+- Supported Zotero versions: `10.0` and later
 - Validated platform: macOS with the Homebrew `zotero` cask
-- API-key default: `gpt-5.6-luna`, medium reasoning
-- Codex default: `gpt-5.6-sol`, xhigh reasoning, fast service tier
+- API-key default: `gpt-6-astra`, xhigh reasoning, fast service tier
+- Codex default: `gpt-6-astra`, xhigh reasoning, fast service tier
 - Maximum output: 8,192 tokens
 - Providers: OpenAI API key or local Codex CLI with ChatGPT sign-in
 - API-key transport: `POST https://api.openai.com/v1/responses`, with `store: false`
@@ -36,7 +36,7 @@ The plugin does not modify Zotero items, notes, tags, collections, attachments, 
 - Codex-first provider that delegates authentication to the installed Codex CLI; AItero never reads or stores its tokens.
 - Model-invoked live web search and up to three parallel research agents, available automatically when useful in Codex mode.
 - Read-only Codex sandbox with shell, file changes, MCP, connectors, and approval requests blocked.
-- Codex fast mode for roughly 1.5× model speed; GPT-5.6 fast consumes 2.5× Standard ChatGPT credits.
+- GPT-6 Astra with xhigh reasoning and fast mode for both providers.
 
 ## Quick start
 
@@ -44,8 +44,8 @@ For complete installation, privacy, development, and troubleshooting instruction
 
 1. Download both assets from the private GitHub Release:
 
-   - `aitero-assistant-0.3.0.xpi`
-   - `aitero-assistant-0.3.0.xpi.sha256`
+   - `aitero-assistant-0.3.1.xpi`
+   - `aitero-assistant-0.3.1.xpi.sha256`
 
 2. Configure the preferred Codex provider or the API-key fallback:
 
@@ -86,7 +86,7 @@ Supported examples:
 
 ```sh
 export OPENAI_API_KEY='your-api-key'
-OPENAI_MODEL="gpt-5.6-luna"
+OPENAI_MODEL="gpt-6-astra"
 ```
 
 The key is never written to the XPI, Zotero preferences, the DOM, Zotero logs, or the Zotero database. Shell startup files are plaintext files, so protect their permissions and do not use this approach on a shared account. The included terminal launcher remains available for users who prefer an environment-only key.
@@ -119,7 +119,7 @@ These request settings are not equivalent to organization-level Zero Data Retent
 ## PDF retrieval and citations
 
 1. The Zotero PDF worker result is trusted only when page counts, extracted page counts, and form-feed boundaries agree.
-2. If validation fails, AItero uses a Reader page-text adapter and then a Zotero 10 page-specific worker fallback.
+2. If validation fails, AItero uses a Reader page-text adapter and then a validated page-specific worker fallback.
 3. Chunks never cross PDF page boundaries. The default target is approximately 1,200 characters with a 200-character overlap.
 4. AItero sends every extractable page chunk when the serialized context is at most 750,000 characters, including the 200-character overlaps.
 5. The full-paper message is rebuilt as a stable request prefix and is not duplicated into in-memory conversation history.
@@ -127,13 +127,13 @@ These request settings are not equivalent to organization-level Zero Data Retent
 7. A lexical no-match still selects distributed pages, so a cross-language question never produces an empty paper context.
 8. Only citations to chunks included in the request can become buttons. Invented IDs remain plain text.
 
-`[PDF N]` refers to the one-based PDF file page number, not a printed page label. AItero navigates using Zotero's zero-based `pageIndex`. Paragraph-level highlighting is outside the v0.3.0 scope.
+`[PDF N]` refers to the one-based PDF file page number, not a printed page label. AItero navigates using Zotero's zero-based `pageIndex`. Paragraph-level highlighting is outside the v0.3.1 scope.
 
 Image-only PDFs are not sent to OpenAI. AItero displays an OCR-required message instead. Partially extractable PDFs use only pages with text and display a coverage warning.
 
 ## Limitations
 
-Version 0.3.0 intentionally does not provide:
+Version 0.3.1 intentionally does not provide:
 
 - multi-paper comparison;
 - whole-library retrieval;
@@ -144,7 +144,7 @@ Version 0.3.0 intentionally does not provide:
 - paragraph highlighting; or
 - automatic updates from the private repository.
 
-The Zotero 10 PDF compatibility adapter uses version-specific internal APIs. The manifest therefore caps compatibility at `10.0.*`.
+The manifest permits Zotero 10 and later without an upper version cap. The PDF compatibility adapter checks the returned page counts and rejects results that cannot be mapped to exact pages. Zotero 10.0.2 is the validated runtime; later versions are permitted but require integration testing when their internal APIs change. Zotero recommends [validating each major release](https://www.zotero.org/support/dev/zotero_10_for_developers#updating_plugin_compatibility), so an open-ended manifest is not a guarantee of future compatibility.
 
 ## Development
 
@@ -160,8 +160,8 @@ The packaging script sorts source paths and fixes ZIP timestamps, permissions, U
 Generated files:
 
 ```text
-dist/aitero-assistant-0.3.0.xpi
-dist/aitero-assistant-0.3.0.xpi.sha256
+dist/aitero-assistant-0.3.1.xpi
+dist/aitero-assistant-0.3.1.xpi.sha256
 ```
 
 ## Documentation

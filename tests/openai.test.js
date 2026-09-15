@@ -153,21 +153,37 @@ test("SSEParser preserves split non-ASCII/emoji UTF-8 and handles CRLF, LF, comm
 	assert.deepEqual(parseSSEData(messages[1].data), { done: true, event: null });
 });
 
-test("request body has the required stateless GPT-5.6 Luna defaults", () => {
+test("request body has the required stateless GPT-6 Astra xhigh/fast defaults", () => {
 	const body = createResponseRequestBody({
 		input: [{ role: "user", content: "Question" }],
 		safetyIdentifier: "profile-123",
 	});
 
 	assert.equal(body.model, DEFAULT_MODEL);
-	assert.deepEqual(body.reasoning, { effort: "medium", context: "all_turns" });
+	assert.equal(body.model, "gpt-6-astra");
+	assert.deepEqual(body.reasoning, { effort: "xhigh", context: "all_turns" });
+	assert.equal(body.service_tier, "fast");
 	assert.equal(body.max_output_tokens, DEFAULT_MAX_OUTPUT_TOKENS);
 	assert.equal(body.store, false);
 	assert.equal(body.stream, true);
 	assert.equal(body.safety_identifier, "profile-123");
 	assert.equal(Object.hasOwn(body, "background"), false);
 	assert.equal(Object.hasOwn(body, "previous_response_id"), false);
+	for (const unsupported of ["temperature", "top_p", "top_logprobs"]) {
+		assert.equal(Object.hasOwn(body, unsupported), false);
+	}
 	assert.equal(DEFAULT_INACTIVITY_TIMEOUT_MS, 180000);
+});
+
+test("explicit non-Astra model overrides retain the previous reasoning and tier behavior", () => {
+	const body = createResponseRequestBody({
+		model: "gpt-5.6-luna",
+		input: [{ role: "user", content: "Question" }],
+		safetyIdentifier: "profile-override",
+	});
+	assert.equal(body.model, "gpt-5.6-luna");
+	assert.equal(body.reasoning.effort, "medium");
+	assert.equal(Object.hasOwn(body, "service_tier"), false);
 });
 
 test("streamResponse sends caller-supplied credentials/model just in time and emits deltas", async () => {

@@ -4,21 +4,21 @@ This guide covers installation from a private GitHub Release, building from sour
 
 ## 1. Supported configuration
 
-AItero 0.3.0 is intentionally narrow and version-pinned.
+AItero 0.3.1 requires Zotero 10 or later.
 
 | Component | Supported value |
 | --- | --- |
 | Operating system | macOS |
 | Zotero distribution | Homebrew cask `zotero` |
-| Zotero version | `10.0` through `10.0.*` |
+| Zotero version | `10.0` and later |
 | CPU | Apple Silicon or Intel |
 | Node.js for builds | 18 or newer; CI uses Node.js 22 |
 | OpenAI providers | Responses API key, or Codex CLI with ChatGPT sign-in |
-| API-key default | `gpt-5.6-luna`, medium reasoning |
-| Codex default | `gpt-5.6-sol`, xhigh reasoning, fast service tier |
+| API-key default | `gpt-6-astra`, xhigh reasoning, fast service tier |
+| Codex default | `gpt-6-astra`, xhigh reasoning, fast service tier |
 | Plugin UI | English |
 
-Do not install this release on Zotero 9 or Zotero 11 and later. The public item-pane integration is stable, but the page-text compatibility adapter is explicitly tied to Zotero 10 internals.
+Zotero 9 and earlier are unsupported. Installation is allowed on Zotero 10 and later, with no upper version cap. Zotero 10.0.2 is the validated runtime; future releases still need integration testing because page-text extraction uses internal APIs. Unsupported page data produces an extraction error instead of unverified citations.
 
 ## 2. Choose an installation path
 
@@ -29,11 +29,11 @@ There are two supported paths.
 Use this path when you only want to run AItero.
 
 1. Open the private repository's **Releases** page while signed in to GitHub.
-2. Open release `v0.3.0`.
+2. Open release `v0.3.1`.
 3. Download:
 
-   - `aitero-assistant-0.3.0.xpi`
-   - `aitero-assistant-0.3.0.xpi.sha256`
+   - `aitero-assistant-0.3.1.xpi`
+   - `aitero-assistant-0.3.1.xpi.sha256`
 
 4. Verify the XPI before installing it.
 
@@ -63,7 +63,7 @@ brew info --cask zotero
   /Applications/Zotero.app/Contents/Info.plist
 ```
 
-The final command must print a `10.0.x` version. If Zotero is not installed and this Mac is intended to use the Homebrew distribution, install it with:
+The final command must print a version of `10.0` or later. If Zotero is not installed and this Mac is intended to use the Homebrew distribution, install it with:
 
 ```sh
 brew install --cask zotero
@@ -131,7 +131,7 @@ The plugin looks for Codex in this order:
 
 Codex requests run in fresh ephemeral App Server threads rooted at an empty temporary directory. The parent and its subagents use a read-only sandbox with no shell, file changes, MCP, connectors, image tools, or approval requests. These settings, including `approvalPolicy: "never"`, are sent by AItero on every request and do not depend on a particular machine's `~/.codex/config.toml`.
 
-AItero explicitly selects GPT-5.6 Sol with xhigh reasoning and Codex fast mode for the parent and default subagents. Fast mode is approximately 1.5× faster and, for GPT-5.6 with ChatGPT sign-in, consumes 2.5× the credits of Standard mode. This Codex default is independent of `OPENAI_MODEL`, which only overrides the API-key provider.
+AItero explicitly selects `gpt-6-astra` with xhigh reasoning and fast mode for the Codex parent and default subagents. The API-key provider also defaults to `gpt-6-astra` with xhigh reasoning and `service_tier: "fast"`. `OPENAI_MODEL` only overrides the API-key provider; non-Astra overrides retain medium reasoning and the account's default service tier. See the official [GPT-6 Astra model](https://developers.openai.com/api/docs/models/gpt-6-astra) and [Fast mode](https://developers.openai.com/api/docs/guides/fast-mode) documentation.
 
 Web search and parallel research agents are always available in Codex mode, and the model is instructed to use them only when useful. Web search can send model-generated queries beyond the supplied PDF context; do not send sensitive papers if that exposure is unacceptable. Parallel research is capped at three child agents, and they inherit the parent sandbox.
 
@@ -148,7 +148,7 @@ export OPENAI_API_KEY='your-api-key'
 Optional model override:
 
 ```sh
-export OPENAI_MODEL='gpt-5.6-luna'
+export OPENAI_MODEL='gpt-6-astra'
 ```
 
 Then restrict the shell file to the current user:
@@ -192,7 +192,7 @@ The parser accepts only static values:
 export OPENAI_API_KEY='sk-example'
 OPENAI_API_KEY="sk-example"
 OPENAI_API_KEY=sk-example
-export OPENAI_MODEL='gpt-5.6-luna'
+export OPENAI_MODEL='gpt-6-astra'
 ```
 
 The last valid assignment within a file wins. The first file that contains a valid value wins.
@@ -249,7 +249,7 @@ The launcher:
 
 - requires a non-empty key;
 - requires the Homebrew `zotero` cask;
-- requires Zotero `10.0.x`;
+- requires Zotero `10.0` or later;
 - refuses to terminate an already-running Zotero process; and
 - executes the Homebrew application binary directly without printing the key.
 
@@ -262,8 +262,8 @@ From a source build:
 ```sh
 npm run package
 cd dist
-shasum -a 256 aitero-assistant-0.3.0.xpi
-cat aitero-assistant-0.3.0.xpi.sha256
+shasum -a 256 aitero-assistant-0.3.1.xpi
+cat aitero-assistant-0.3.1.xpi.sha256
 ```
 
 The two digests must match exactly.
@@ -272,8 +272,8 @@ For a downloaded Release asset, place the XPI and sidecar in the same directory 
 
 ```sh
 cd /path/to/downloads
-shasum -a 256 aitero-assistant-0.3.0.xpi
-cat aitero-assistant-0.3.0.xpi.sha256
+shasum -a 256 aitero-assistant-0.3.1.xpi
+cat aitero-assistant-0.3.1.xpi.sha256
 ```
 
 Do not install an XPI whose digest differs from the published sidecar.
@@ -287,8 +287,8 @@ The XPI is locally built and unsigned. Install it only when it came from the pri
 3. Choose **Tools → Plugins**.
 4. Open the tools menu in the Plugins Manager.
 5. Choose **Install Plugin From File…**.
-6. Select `aitero-assistant-0.3.0.xpi`.
-7. Confirm that **AItero Assistant 0.3.0** appears and is enabled.
+6. Select `aitero-assistant-0.3.1.xpi`.
+7. Confirm that **AItero Assistant 0.3.1** appears and is enabled.
 8. Fully quit Zotero.
 9. Reopen Zotero normally.
 
@@ -301,7 +301,7 @@ Use a public or otherwise non-confidential PDF for the first request.
 1. Select exactly one Zotero item with a local PDF attachment, or open one PDF in the Reader.
 2. Click the **AI Assistant** icon in the right sidebar.
 3. Confirm that the panel starts directly with the chat welcome screen. No paper-title metadata row should appear.
-4. Confirm that the bottom-left status shows **Ready · Codex · gpt-5.6-sol (xhigh, fast)** or **Ready · OpenAI API fallback · Luna**. If Codex asks for authentication, use **Sign in to Codex** and finish in the browser.
+4. Confirm that the bottom-left status shows **Ready · Codex · gpt-6-astra (xhigh, fast)** or **Ready · OpenAI API fallback · gpt-6-astra (xhigh, fast)**. If Codex asks for authentication, use **Sign in to Codex** and finish in the browser.
 5. Ask a narrowly scoped question such as:
 
    ```text
@@ -377,9 +377,10 @@ The API-key request uses:
 
 ```json
 {
-  "model": "gpt-5.6-luna",
+  "model": "gpt-6-astra",
+  "service_tier": "fast",
   "reasoning": {
-    "effort": "medium",
+    "effort": "xhigh",
     "context": "all_turns"
   },
   "max_output_tokens": 8192,
@@ -398,7 +399,7 @@ When the model uses web search, Codex may additionally send generated search que
 
 ## 14. Upgrade procedure
 
-Private GitHub Release assets cannot be fetched automatically by Zotero without authentication. AItero 0.3.0 therefore uses manual updates.
+Private GitHub Release assets cannot be fetched automatically by Zotero without authentication. AItero 0.3.1 therefore uses manual updates.
 
 1. Download the new XPI and checksum sidecar from the private Release.
 2. Verify the checksum.
@@ -460,7 +461,7 @@ AItero does not modify the Zotero database, so there is no database migration or
 
 ### The AI Assistant icon is missing
 
-- Confirm Zotero is `10.0.x`.
+- Confirm Zotero is `10.0` or later.
 - Confirm the plugin is enabled under **Tools → Plugins**.
 - Confirm exactly one standard item or PDF is selected.
 - Restart Zotero after installing or updating the XPI.
@@ -483,7 +484,7 @@ The plugin detected a partially extractable PDF. It sends only pages containing 
 ### Citation buttons do not navigate
 
 - Confirm the attachment still exists locally.
-- Confirm Zotero is `10.0.x`.
+- Confirm Zotero is `10.0` or later.
 - Reopen the PDF and retry the citation.
 - A citation uses PDF file page order, not the printed page label.
 
