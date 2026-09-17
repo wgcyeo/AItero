@@ -3,9 +3,7 @@ var AIteroAssistant = (() => {
 
 	const PLUGIN_ID = "aitero-assistant@local";
 	const PANE_ID = "assistant";
-	const SAFETY_PREF = "extensions.aitero-assistant.safetyIdentifier";
-	const SHELL_RC_FILES = [".zshrc", ".bashrc"];
-	const SHELL_CONFIG_NAMES = new Set(["OPENAI_API_KEY", "OPENAI_MODEL"]);
+	const MODEL_SETTINGS_PREF = "extensions.aitero-assistant.modelSettings";
 	const HTML_NS = "http://www.w3.org/1999/xhtml";
 	const SYSTEM_INSTRUCTIONS = `You are AItero, a read-only research-paper assistant.
 Answer in the same language as the user's question unless they explicitly ask for another language.
@@ -41,29 +39,13 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 		}
 	}
 
-	async function resolveProvider({
-		getCodexStatus = () => AIteroCodex.getStatus(),
-		hasApiKeyImpl = hasApiKey,
-	} = {}) {
-		let codexAvailable = false;
-		let codexAuthenticated = false;
-		let codexError = null;
+	async function resolveCodexStatus({ getCodexStatus = () => AIteroCodex.getStatus() } = {}) {
 		try {
-			let status = await getCodexStatus();
-			codexAvailable = status?.available !== false;
-			codexAuthenticated = Boolean(status?.authenticated);
+			return await getCodexStatus();
 		}
 		catch (error) {
-			codexError = error;
+			return { available: false, authenticated: false, error };
 		}
-		let apiAvailable = codexAuthenticated ? false : await hasApiKeyImpl();
-		return {
-			provider: codexAuthenticated ? "codex" : (apiAvailable ? "api" : null),
-			codexAvailable,
-			codexAuthenticated,
-			apiAvailable,
-			codexError,
-		};
 	}
 
 	function invalidateWindow(win, reason) {
@@ -96,98 +78,21 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 		tracked.librarySelectionListener = listener;
 	}
 
-	function readProcessEnvironment(name) {
+	function readModelSettings() {
 		try {
-			return Services.env.exists(name) ? Services.env.get(name).trim() : "";
+			let stored = JSON.parse(Services.prefs.getStringPref(MODEL_SETTINGS_PREF, "null"));
+			// Preserve the Codex choice from earlier nested preference versions.
+			let value = stored?.codex ?? stored;
+			if (!value || typeof value.model !== "string") return null;
+			return { model: value.model, effort: value.effort, speed: value.speed };
 		}
 		catch (_error) {
-			return "";
+			return null;
 		}
 	}
 
-	function parseStaticShellLiteral(source) {
-		let value = String(source ?? "").trim();
-		let singleQuoted = value.match(/^'([^'\r\n]*)'$/);
-		if (singleQuoted) return singleQuoted[1];
-		let doubleQuoted = value.match(/^"([^"\\$`\r\n]*)"$/);
-		if (doubleQuoted) return doubleQuoted[1];
-		return /^[A-Za-z0-9_./:@%+=,-]+$/.test(value) ? value : "";
-	}
-
-	function parseStaticShellAssignment(source, name) {
-		if (!SHELL_CONFIG_NAMES.has(name)) return "";
-		let pattern = new RegExp(`^\\s*(?:export\\s+)?${name}\\s*=\\s*(.+?)\\s*$`);
-		let resolved = "";
-		for (let line of String(source ?? "").split(/\r?\n/)) {
-			let match = line.match(pattern);
-			if (!match) continue;
-			let parsed = parseStaticShellLiteral(match[1]);
-			if (parsed) resolved = parsed;
-		}
-		return resolved;
-	}
-
-	async function readShellConfiguration(name) {
-		if (!SHELL_CONFIG_NAMES.has(name)) return "";
-		let home;
-		try {
-			home = Services.dirsvc.get("Home", Ci.nsIFile);
-		}
-		catch (_error) {
-			return "";
-		}
-		for (let leafName of SHELL_RC_FILES) {
-			try {
-				let file = home.clone();
-				file.append(leafName);
-				if (!file.exists() || !file.isFile() || file.fileSize > 1_000_000) continue;
-				let value = parseStaticShellAssignment(
-					await IOUtils.readUTF8(file.path),
-					name,
-				);
-				if (value) return value;
-			}
-			catch (_error) {
-				// Missing, unreadable, or unsupported shell config; try the next file.
-			}
-		}
-		return "";
-	}
-
-	async function readConfiguration(name) {
-		return readProcessEnvironment(name) || await readShellConfiguration(name);
-	}
-
-	async function hasApiKey() {
-		return Boolean(await readConfiguration("OPENAI_API_KEY"));
-	}
-
-	async function readRequestEnvironment() {
-		let apiKey = await readConfiguration("OPENAI_API_KEY");
-		if (!apiKey) {
-			throw new AIteroOpenAI.OpenAIConfigurationError(
-				"OPENAI_API_KEY is missing.",
-			);
-		}
-		let model = await readConfiguration("OPENAI_MODEL");
-		return {
-			apiKey,
-			model: model || AIteroOpenAI.DEFAULT_MODEL,
-		};
-	}
-
-	function getSafetyIdentifier() {
-		let existing = Services.prefs.getStringPref(SAFETY_PREF, "").trim();
-		if (existing && existing.length <= 64) return existing;
-		let generated;
-		try {
-			generated = Services.uuid.generateUUID().toString().replace(/[{}]/g, "");
-		}
-		catch (_error) {
-			generated = `aitero-${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`;
-		}
-		Services.prefs.setStringPref(SAFETY_PREF, generated);
-		return generated;
+	function saveModelSelection(selection) {
+		Services.prefs.setStringPref(MODEL_SETTINGS_PREF, JSON.stringify(selection));
 	}
 
 	function getWindowForDocument(doc) {
@@ -451,7 +356,7 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 			this.body = body;
 			this.target = null;
 			this.contextKey = null;
-			this.session = new AIteroOpenAI.SessionState();
+			this.session = new AIteroSession.SessionState();
 			this.committedChunks = new Map();
 			this.activeAbort = null;
 			this.generation = 0;
@@ -460,7 +365,9 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 			this.lastFailedQuestion = "";
 			this.lastFailedAssistantNode = null;
 			this.credentialCheck = 0;
-			this.currentProvider = null;
+			this.modelsLoaded = false;
+			this.modelConfiguration = null;
+			this.preparingRequest = false;
 			this.codexAvailable = false;
 			this.codexAuthenticated = false;
 			this.signingIn = false;
@@ -511,10 +418,15 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 				this.doc,
 				"div",
 				"aitero-status",
-				"aitero-checking-provider",
+				"aitero-checking-codex",
 			);
 
 			let composer = createElement(this.doc, "div", "aitero-composer");
+			this.modelPicker = new AIteroModels.ModelPicker({
+				doc: this.doc,
+				onChange: saveModelSelection,
+			});
+			this.modelPicker.disabled = true;
 			this.input = createElement(this.doc, "textarea", "aitero-input");
 			this.input.setAttribute("data-l10n-id", "aitero-question-placeholder");
 			this.input.setAttribute("data-l10n-attrs", "placeholder");
@@ -561,7 +473,7 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 				this.sendButton,
 			);
 			composerFooter.append(this.statusNode, actions);
-			composer.append(this.input, composerFooter);
+			composer.append(this.modelPicker.element, this.input, composerFooter);
 			this.root.append(
 				this.contextBar,
 				this.warningNode,
@@ -570,7 +482,7 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 				composer,
 			);
 			this.body.appendChild(this.root);
-			void this._refreshCredentialStatus();
+			void this._refreshCodexStatus();
 		}
 
 		focusPane() {
@@ -626,42 +538,68 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 			return button;
 		}
 
-		async _refreshCredentialStatus() {
+		async _refreshCodexStatus() {
+			if (this.destroyed || this.activeAbort || this.preparingRequest) return;
 			let check = ++this.credentialCheck;
-			this._setStatus("aitero-checking-provider");
-			let resolution = await resolveProvider();
-			if (this.destroyed || check !== this.credentialCheck || this.activeAbort) return;
-			this._applyProviderResolution(resolution);
+			this._setStatus("aitero-checking-codex");
+			let status = await resolveCodexStatus();
+			if (this.destroyed || check !== this.credentialCheck) return;
+			let models = status.authenticated ? await this._getModelConfiguration() : null;
+			if (this.destroyed || check !== this.credentialCheck || this.activeAbort || this.preparingRequest) return;
+			this._applyCodexStatus(status, models);
 		}
 
-		_applyProviderResolution(resolution) {
-			this.currentProvider = resolution.provider;
-			this.codexAvailable = resolution.codexAvailable;
-			this.codexAuthenticated = resolution.codexAuthenticated;
+		async _getModelConfiguration() {
+			if (!this.modelConfiguration) {
+				this.modelConfiguration = (async () => {
+					let [catalog, settings] = await Promise.allSettled([
+						AIteroCodex.getModels(),
+						AIteroCodex.getModelDefaults(),
+					]);
+					return {
+						models: AIteroModels.fromCodexModels(catalog.status === "fulfilled" ? catalog.value : []),
+						defaults: settings.status === "fulfilled" ? settings.value : {},
+					};
+				})();
+			}
+			let configuration = await this.modelConfiguration;
+			if (!configuration.models.length) this.modelConfiguration = null;
+			return configuration;
+		}
+
+		_applyCodexStatus(status, configuration) {
+			this.codexAvailable = status.available;
+			this.codexAuthenticated = status.authenticated;
 			this.signInButton.hidden = !this.codexAvailable || this.codexAuthenticated;
-			this._setProviderReadyStatus();
+			if (configuration && !this.modelsLoaded) {
+				this.modelPicker.setOptions(configuration.models, readModelSettings(), configuration.defaults);
+				this.modelsLoaded = configuration.models.length > 0;
+			}
+			this._setControlDisabledState();
+			this._setReadyStatus();
 		}
 
-		_setProviderReadyStatus() {
-			if (this.currentProvider === "codex") this._setStatus("aitero-ready-codex");
-			else if (this.currentProvider === "api") this._setStatus("aitero-ready-api");
+		_setReadyStatus() {
+			if (this.codexAuthenticated) this._setStatus("aitero-ready-codex");
 			else if (this.codexAvailable) this._setStatus("aitero-codex-sign-in-required");
-			else this._setStatus("aitero-no-provider");
+			else this._setStatus("aitero-codex-unavailable");
 		}
 
 		async _signInCodex() {
-			if (this.signingIn || this.activeAbort || !this.codexAvailable) return;
+			if (this.signingIn || this.activeAbort || this.preparingRequest || !this.codexAvailable) return;
 			this.signingIn = true;
 			this._setControlDisabledState();
 			this._setStatus("aitero-codex-signing-in");
 			this._setError(null);
 			try {
-				await AIteroCodex.login(url => {
+				let status = await AIteroCodex.login(url => {
 					let safeURL = safeExternalURL(url);
 					if (!safeURL) throw new Error("Codex returned an unsafe sign-in URL.");
 					Zotero.launchURL(safeURL);
 				});
-				this.codexAuthenticated = true;
+				this.codexAuthenticated = status.authenticated;
+				this.modelConfiguration = null;
+				this.modelsLoaded = false;
 			}
 			catch (error) {
 				this._handleError(error);
@@ -669,7 +607,7 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 			finally {
 				this.signingIn = false;
 				this._setControlDisabledState();
-				void this._refreshCredentialStatus();
+				void this._refreshCodexStatus();
 			}
 		}
 
@@ -739,7 +677,7 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 				|| generation !== this.generation
 				|| target !== this.target
 			) {
-				throw new AIteroOpenAI.OpenAICancelledError();
+				throw new AIteroSession.CancelledError();
 			}
 		}
 
@@ -792,7 +730,7 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 		}
 
 		async send(questionOverride = null, { retry = false } = {}) {
-			if (this.activeAbort || this.target?.kind !== "pdf") return;
+			if (this.destroyed || this.activeAbort || this.preparingRequest || this.signingIn || this.target?.kind !== "pdf") return;
 			let target = this.target;
 			let generation = this.generation;
 			let question = String(questionOverride ?? this.input.value).trim();
@@ -800,22 +738,31 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 				this._setError("aitero-empty-question", false);
 				return;
 			}
-			let resolution = await resolveProvider();
-			if (generation !== this.generation || target !== this.target) return;
-			this._applyProviderResolution(resolution);
-			let provider = resolution.provider;
-			if (!provider) {
-				let error = new AIteroOpenAI.OpenAIConfigurationError(
-					"Neither Codex login nor the API-key fallback is available.",
+			this.preparingRequest = true;
+			this._setControlDisabledState();
+			let status;
+			try {
+				status = await resolveCodexStatus();
+				let models = status.authenticated ? await this._getModelConfiguration() : null;
+				if (this.destroyed || generation !== this.generation || target !== this.target) return;
+				this._applyCodexStatus(status, models);
+			}
+			finally {
+				this.preparingRequest = false;
+				this._setControlDisabledState();
+			}
+			if (!status.authenticated) {
+				let error = new AIteroSession.ConfigurationError(
+					"Sign in to Codex with ChatGPT to use AItero.",
 				);
-				error.code = resolution.codexAvailable
+				error.code = status.available
 					? "codex-auth-required"
-					: "provider-unavailable";
+					: "codex-unavailable";
 				this._handleError(error);
 				return;
 			}
 			if (generation !== this.generation || target !== this.target) return;
-			let environment = null;
+			let modelOptions = this.modelPicker.getRequestOptions();
 			let externalAbort = new this.win.AbortController();
 			this.activeAbort = externalAbort;
 			this._setBusy(true);
@@ -845,7 +792,7 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 				);
 				if (data.coverage.allEmpty || data.coverage.totalPages === 0) {
 					this._setWarning("aitero-ocr-required");
-					this._setProviderReadyStatus();
+					this._setReadyStatus();
 					return;
 				}
 
@@ -878,42 +825,23 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 					selection.chunks,
 					selection.mode,
 				);
-				let result;
-				if (provider === "codex") {
-					result = await AIteroCodex.streamResponse({
-						instructions: SYSTEM_INSTRUCTIONS,
-						input: requestInput,
-						signal: externalAbort.signal,
-						enableWebSearch: true,
-						enableParallelAgents: true,
-						onDelta: onTextDelta,
-						onToolActivity: item => {
-							if (generation !== this.generation) return;
-							this._setStatus(
-								item.type === "webSearch"
-									? "aitero-codex-web-searching"
-									: "aitero-codex-agents-working",
-							);
-						},
-					});
-				}
-				else {
-					// Read the key only when the request is ready to leave Zotero.
-					environment = await readRequestEnvironment();
-					result = await AIteroOpenAI.streamResponse({
-						fetchImpl: this.win.fetch.bind(this.win),
-						AbortControllerImpl: this.win.AbortController,
-						TextDecoderImpl: this.win.TextDecoder ?? TextDecoder,
-						apiKey: environment.apiKey,
-						model: environment.model,
-						safetyIdentifier: getSafetyIdentifier(),
-						instructions: SYSTEM_INSTRUCTIONS,
-						input: requestInput,
-						signal: externalAbort.signal,
-						onDelta: onTextDelta,
-						onRefusalDelta: onTextDelta,
-					});
-				}
+				let result = await AIteroCodex.streamResponse({
+					...modelOptions,
+					instructions: SYSTEM_INSTRUCTIONS,
+					input: requestInput,
+					signal: externalAbort.signal,
+					enableWebSearch: true,
+					enableParallelAgents: true,
+					onDelta: onTextDelta,
+					onToolActivity: item => {
+						if (generation !== this.generation) return;
+						this._setStatus(
+							item.type === "webSearch"
+								? "aitero-codex-web-searching"
+								: "aitero-codex-agents-working",
+						);
+					},
+				});
 				this._assertRequestCurrent(target, generation, externalAbort.signal);
 				transaction.commit(result.response);
 				let allowedChunks = new Map(this.committedChunks);
@@ -950,8 +878,6 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 				this._handleError(error);
 			}
 			finally {
-				// Remove the key-bearing object from live UI state immediately.
-				environment = null;
 				if (this.activeAbort === externalAbort) {
 					this.activeAbort = null;
 					this._setBusy(false);
@@ -972,11 +898,12 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 
 		clearConversation(_reason) {
 			this.generation++;
+			this.modelPicker.close();
 			this.cancelRequest();
 			this.activeAbort = null;
 			this._resetConversationData();
 			this._setBusy(false);
-			void this._refreshCredentialStatus();
+			void this._refreshCodexStatus();
 		}
 
 		_resetConversationData() {
@@ -1259,7 +1186,7 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 		}
 
 		_setContextStatus(_selection, _coverage) {
-			this._setProviderReadyStatus();
+			this._setReadyStatus();
 		}
 
 		_setWarning(l10nID, args) {
@@ -1283,20 +1210,12 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 		_handleError(error) {
 			let l10nID = "aitero-error-generic";
 			if (error?.code === "codex-auth-required") l10nID = "aitero-codex-sign-in-required";
-			else if (error?.code === "provider-unavailable") l10nID = "aitero-no-provider";
 			else if (error?.code === "codex-unavailable") l10nID = "aitero-codex-unavailable";
 			else if (error?.code === "codex-tool-blocked") l10nID = "aitero-codex-tool-blocked";
-			else if (error?.kind === "configuration") l10nID = "aitero-missing-key";
 			else if (error?.kind === "cancelled") l10nID = "aitero-cancelled";
 			else if (error?.kind === "timeout") l10nID = "aitero-error-idle";
 			else if (error?.kind === "network") l10nID = "aitero-error-offline";
-			else if (error?.kind === "http" && error.status === 401) l10nID = "aitero-error-401";
-			else if (error?.kind === "http" && error.status === 429) l10nID = "aitero-error-429";
-			else if (error?.kind === "http" && error.status >= 500) l10nID = "aitero-error-server";
-			else if (error?.kind === "response_incomplete" && error.reason === "content_filter") {
-				l10nID = "aitero-error-filter";
-			}
-			else if (error?.kind === "response_incomplete") l10nID = "aitero-error-incomplete";
+			else if (error?.kind === "usage_limit") l10nID = "aitero-codex-usage-limit";
 			else if (error?.name === "PdfExtractionError") l10nID = "aitero-error-extraction";
 			this._setError(
 				l10nID,
@@ -1305,8 +1224,8 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 			this._setStatus(l10nID);
 			if (error?.code === "codex-auth-required") {
 				this.codexAuthenticated = false;
-				this.currentProvider = null;
 				this.signInButton.hidden = !this.codexAvailable;
+				this._setControlDisabledState();
 			}
 		}
 
@@ -1330,8 +1249,10 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 		}
 
 		_setControlDisabledState() {
-			let disabled = Boolean(this.activeAbort) || this.signingIn;
+			let disabled = Boolean(this.activeAbort) || this.preparingRequest || this.signingIn;
 			if (this.signInButton) this.signInButton.disabled = disabled;
+			if (this.sendButton) this.sendButton.disabled = disabled || this.target?.kind !== "pdf";
+			this.modelPicker.disabled = disabled || !this.codexAuthenticated;
 		}
 
 		_isConversationNearBottom() {
@@ -1367,6 +1288,7 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 			if (this.destroyed) return;
 			this.destroyed = true;
 			this.clearConversation("destroy");
+			this.modelPicker.destroy();
 			this.hostSection?.classList.remove("aitero-host-section");
 			this.root.remove();
 			_controllers.delete(this);
@@ -1507,8 +1429,10 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 		removeFromWindow,
 		shutdown,
 		_test: {
+			PaneController,
+			readModelSettings,
+			saveModelSelection,
 			SYSTEM_INSTRUCTIONS,
-			parseStaticShellAssignment,
 			contextHint,
 			selectionSignature,
 			createQuestionInput,
@@ -1519,7 +1443,7 @@ Be accurate, direct, and useful. Do not emit HTML.`;
 			readableCitationText,
 			sourceContent,
 			safeExternalURL,
-			resolveProvider,
+			resolveCodexStatus,
 		},
 	};
 })();

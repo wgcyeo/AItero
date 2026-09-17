@@ -7,15 +7,12 @@ The plugin does not modify Zotero items, notes, tags, collections, attachments, 
 ## At a glance
 
 - Plugin ID: `aitero-assistant@local`
-- Version: `0.3.1`
+- Version: `0.4.0`
 - License: Apache-2.0
 - Supported Zotero versions: `10.0` and later
 - Validated platform: macOS with the Homebrew `zotero` cask
-- API-key default: `gpt-6-astra`, xhigh reasoning, fast service tier
-- Codex default: `gpt-6-astra`, xhigh reasoning, fast service tier
-- Maximum output: 8,192 tokens
-- Providers: OpenAI API key or local Codex CLI with ChatGPT sign-in
-- API-key transport: `POST https://api.openai.com/v1/responses`, with `store: false`
+- Initial model, effort, and speed: inherited from the local Codex configuration
+- Authentication: local Codex CLI with ChatGPT sign-in
 - Codex transport: local `codex app-server` over stdio, using ephemeral threads
 - UI language: English
 
@@ -32,11 +29,11 @@ The plugin does not modify Zotero items, notes, tags, collections, attachments, 
 - Validated `[[cite:<chunk-id>]]` markers rendered as clickable `[PDF N]` buttons.
 - Selectable message text and user-initiated Markdown chat export with readable PDF page citations.
 - In-memory LRU cache for at most three PDFs; no plugin-owned disk index.
-- Automatic key discovery from the process environment, `~/.zshrc`, or `~/.bashrc`.
-- Codex-first provider that delegates authentication to the installed Codex CLI; AItero never reads or stores its tokens.
+- ChatGPT sign-in that delegates authentication to the installed Codex CLI; AItero never reads or stores its tokens.
 - Model-invoked live web search and up to three parallel research agents, available automatically when useful in Codex mode.
 - Read-only Codex sandbox with shell, file changes, MCP, connectors, and approval requests blocked.
-- GPT-6 Astra with xhigh reasoning and fast mode for both providers.
+- A step-by-step **Model → Effort → Standard / Fast** picker above the question field.
+- Optional saved model, reasoning, and speed choices; new installations follow Codex defaults.
 
 ## Quick start
 
@@ -44,66 +41,41 @@ For complete installation, privacy, development, and troubleshooting instruction
 
 1. Download both assets from the private GitHub Release:
 
-   - `aitero-assistant-0.3.1.xpi`
-   - `aitero-assistant-0.3.1.xpi.sha256`
+   - `aitero-assistant-0.4.0.xpi`
+   - `aitero-assistant-0.4.0.xpi.sha256`
 
-2. Configure the preferred Codex provider or the API-key fallback:
+2. Install the Codex CLI and sign in with ChatGPT using `codex login`, or complete **Sign in to Codex** from the AItero panel.
 
-   - Install Codex and run `codex login`; or
-   - put a literal API-key assignment in `~/.zshrc` as a fallback:
+3. In Zotero, open **Tools → Plugins**, select **Install Plugin From File…**, and choose the XPI.
 
-   ```sh
-   export OPENAI_API_KEY='your-api-key'
-   ```
+4. Fully quit and reopen Zotero. A normal Dock or Finder launch works with the installed Codex CLI.
 
-   AItero reads this file as text. It never sources or executes shell configuration. Command substitutions, variable references, backticks, and other dynamic expressions are rejected.
+5. Select one item with a local PDF, click the **AI Assistant** sidebar icon, and ask a question.
 
-3. For the API-key path, confirm that the key can be detected without printing it:
+## Codex sign-in and model settings
 
-   ```sh
-   npm run check:config
-   ```
-
-4. In Zotero, open **Tools → Plugins**, select **Install Plugin From File…**, and choose the XPI.
-
-5. Fully quit and reopen Zotero. A normal Dock or Finder launch works with either an installed Codex CLI or a supported literal API key.
-
-6. Select one item with a local PDF, click the **AI Assistant** sidebar icon, and ask a question.
-
-## Providers and credentials
-
-Provider selection is automatic. AItero uses an authenticated local Codex CLI first and uses the OpenAI API key only when Codex is unavailable or signed out. The status line always names the active provider. AItero asks App Server for account status and exposes its browser login flow when needed; it does not parse `~/.codex/auth.json`, copy access tokens, or put Codex credentials in Zotero preferences.
+AItero uses Codex with ChatGPT sign-in exclusively. It asks App Server for account status and exposes its browser login flow when needed. It does not parse `~/.codex/auth.json`, copy access tokens, or store credentials in Zotero preferences. If Codex is unavailable or signed out, the panel explains how to install it or sign in before sending a question.
 
 Codex must be discoverable as `codex`, `/opt/homebrew/bin/codex`, `/usr/local/bin/codex`, or the absolute path in `CODEX_PATH`.
 
-For the API-key provider, AItero resolves configuration in this order for every request:
+Click the model name above the question field, choose a model, choose its reasoning effort, then choose **Standard** or **Fast**. Each click advances to the next step; the final speed choice applies and saves the selection. Use the step labels to go back, or press Escape to discard an unfinished selection. Changes apply to the next question without clearing the conversation.
 
-1. `OPENAI_API_KEY` and `OPENAI_MODEL` in the Zotero process environment.
-2. A literal assignment in `~/.zshrc`.
-3. A literal assignment in `~/.bashrc`.
+New installations send no model, reasoning-effort, or speed override, so Codex resolves its own configuration. The picker contains only models returned by Codex; it has no separate default option. An explicit selection is saved only after the final speed choice.
 
-Supported examples:
-
-```sh
-export OPENAI_API_KEY='your-api-key'
-OPENAI_MODEL="gpt-6-astra"
-```
-
-The key is never written to the XPI, Zotero preferences, the DOM, Zotero logs, or the Zotero database. Shell startup files are plaintext files, so protect their permissions and do not use this approach on a shared account. The included terminal launcher remains available for users who prefer an environment-only key.
+Codex supplies its available models, supported efforts, and Fast tier through App Server. Model rows show names only. If discovery is unavailable, Codex defaults remain usable without a hardcoded fallback catalog. Fast can consume more usage; a model without a Fast tier offers Standard only.
 
 ## What is sent to OpenAI
 
-When the user explicitly submits a question, both providers send:
+When the user explicitly submits a question, Codex sends:
 
 - the question;
 - all extracted text from the current PDF when the serialized page chunks total at most 750,000 characters;
 - selected fallback excerpts only when that full context exceeds the cap;
-- successful prior turns from the same in-memory panel session; and
-- a random per-profile `safety_identifier` for API-key requests only.
+- successful prior turns from the same in-memory panel session.
 
-API-key requests use `stream: true`, `store: false`, `credentials: "omit"`, and do not use background mode or `previous_response_id`. Codex requests use an ephemeral App Server thread, disable local history and memories for the request, and unsubscribe after completion.
+Codex requests use an ephemeral App Server thread, disable local history and memories for the request, and unsubscribe after completion.
 
-In Codex mode, web search and up to three parallel research agents are available to the model and used only when the request benefits from them. Codex can send generated search queries to OpenAI's web-search service. The instruction forbids verbatim PDF excerpts, chunk IDs, local paths, and personal identifiers in queries, but model-level controls cannot guarantee that confidential details will never be included. Do not send sensitive papers if this exposure is unacceptable. Parallel research agents stay within the same OpenAI run and inherit the parent's read-only sandbox.
+Web search and up to three parallel research agents are available to the model and used only when the request benefits from them. Codex can send generated search queries to OpenAI's web-search service. The instruction forbids verbatim PDF excerpts, chunk IDs, local paths, and personal identifiers in queries, but model-level controls cannot guarantee that confidential details will never be included. Do not send sensitive papers if this exposure is unacceptable. Parallel research agents stay within the same OpenAI run and inherit the parent's read-only sandbox.
 
 These request settings are not equivalent to organization-level Zero Data Retention or Modified Abuse Monitoring. Review the data controls applicable to the selected account before sending confidential documents.
 
@@ -113,8 +85,8 @@ These request settings are not equivalent to organization-level Zero Data Retent
 - A chat is written to disk only when you choose **Export** and confirm a Markdown file location.
 - Closing the section, changing the item or Reader tab, starting a new chat, closing the window, quitting Zotero, or disabling the plugin cancels active work and clears the session.
 - Failed, cancelled, incomplete, and prematurely closed streams are never committed to follow-up history.
-- The plugin stores one non-secret random `safety_identifier` in Zotero preferences.
-- Uninstalling the plugin removes that preference and any legacy provider/tool preferences. Codex credentials remain owned by Codex.
+- The plugin stores non-secret model, effort, and speed choices in Zotero preferences.
+- Uninstalling the plugin removes all plugin-owned preferences. Codex credentials remain owned by Codex.
 
 ## PDF retrieval and citations
 
@@ -127,13 +99,13 @@ These request settings are not equivalent to organization-level Zero Data Retent
 7. A lexical no-match still selects distributed pages, so a cross-language question never produces an empty paper context.
 8. Only citations to chunks included in the request can become buttons. Invented IDs remain plain text.
 
-`[PDF N]` refers to the one-based PDF file page number, not a printed page label. AItero navigates using Zotero's zero-based `pageIndex`. Paragraph-level highlighting is outside the v0.3.1 scope.
+`[PDF N]` refers to the one-based PDF file page number, not a printed page label. AItero navigates using Zotero's zero-based `pageIndex`. Paragraph-level highlighting is outside the v0.4.0 scope.
 
 Image-only PDFs are not sent to OpenAI. AItero displays an OCR-required message instead. Partially extractable PDFs use only pages with text and display a coverage warning.
 
 ## Limitations
 
-Version 0.3.1 intentionally does not provide:
+Version 0.4.0 intentionally does not provide:
 
 - multi-paper comparison;
 - whole-library retrieval;
@@ -160,8 +132,8 @@ The packaging script sorts source paths and fixes ZIP timestamps, permissions, U
 Generated files:
 
 ```text
-dist/aitero-assistant-0.3.1.xpi
-dist/aitero-assistant-0.3.1.xpi.sha256
+dist/aitero-assistant-0.4.0.xpi
+dist/aitero-assistant-0.4.0.xpi.sha256
 ```
 
 ## Documentation
@@ -177,11 +149,9 @@ dist/aitero-assistant-0.3.1.xpi.sha256
 
 - [Zotero custom item pane sections](https://www.zotero.org/support/dev/zotero_7_for_developers#custom_item_pane_sections)
 - [Zotero plugin installation](https://www.zotero.org/support/plugins)
-- [OpenAI Responses streaming](https://developers.openai.com/api/docs/guides/streaming-responses)
 - [Codex authentication](https://learn.chatgpt.com/docs/auth)
 - [Codex App Server](https://learn.chatgpt.com/docs/app-server)
 - [Codex subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
-- [OpenAI API key safety](https://help.openai.com/en/articles/5112595-best-practices-for-api-key)
 - [OpenAI data controls](https://platform.openai.com/docs/models/default-usage-policies-by-endpoint)
 - [KaTeX security](https://katex.org/docs/security)
 

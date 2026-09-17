@@ -4,15 +4,15 @@
 
 | Version | Zotero | Security updates |
 | --- | --- | --- |
-| 0.3.1+ | 10.0 and later (validated on 10.0.2) | Supported |
-| 0.3.0 | 10.0.x | Superseded |
+| 0.4.0+ | 10.0 and later (validated on 10.0.2) | Supported |
+| 0.3.x | 10.0 and later | Superseded |
 | 0.2.x | 9.0.x | Not supported |
 
 The Zotero compatibility boundary is enforced by `strict_min_version` and `strict_max_version` in `src/manifest.json`.
 
 ## Reporting a vulnerability
 
-Do not place API keys, private PDFs, Zotero databases, profile archives, request payloads, or sensitive logs in an issue.
+Do not place credentials, private PDFs, Zotero databases, profile archives, request payloads, or sensitive logs in an issue.
 
 Use a private GitHub Security Advisory:
 
@@ -29,7 +29,7 @@ Include:
 - the expected and actual behavior; and
 - the security impact.
 
-If a log excerpt is required, redact authorization headers, API keys, document text, file paths containing personal information, and request identifiers that should remain private.
+If a log excerpt is required, redact authorization headers, credentials, document text, file paths containing personal information, and request identifiers that should remain private.
 
 ## Trust model
 
@@ -41,43 +41,11 @@ The plugin still reads:
 
 - metadata required to identify the active PDF;
 - local PDF text required for retrieval;
-- supported shell startup files when resolving API-key or model configuration; and
-- the non-secret random `safety_identifier` used by API-key requests.
-
-## API-key handling
-
-Configuration is resolved immediately before use:
-
-1. the Zotero process environment;
-2. a static literal in `~/.zshrc`; or
-3. a static literal in `~/.bashrc`.
-
-The rc-file parser never starts a shell or executes file contents. It accepts only direct single-quoted, double-quoted, or restricted unquoted literals. It rejects:
-
-- `$VARIABLE` references;
-- `$(command)` substitutions;
-- backticks;
-- escape-heavy or multiline strings;
-- unrelated variable names; and
-- files larger than 1 MB.
-
-The API key is not stored in:
-
-- the XPI;
-- Git;
-- Zotero preferences;
-- the Zotero database;
-- DOM attributes or text nodes;
-- AItero error serialization; or
-- AItero debug output.
-
-The key is sent only as the HTTPS Bearer token for `https://api.openai.com/v1/responses`.
-
-Shell startup files are plaintext. Other processes running as the same macOS user and other privileged Zotero plugins can read them. Use a trusted personal account, restrict file permissions, use a dedicated project key, and configure an appropriate project budget.
+- saved non-secret model, reasoning effort, and speed preferences.
 
 ## Codex authentication
 
-The Codex provider launches the installed `codex app-server` executable directly, without starting a shell. Authentication status and browser login use App Server's `account/read` and `account/login/start` methods.
+The Codex provider launches the installed `codex app-server` executable directly, without starting a shell. AItero accepts only ChatGPT account sessions. Authentication status and browser login use App Server's `account/read` and `account/login/start` methods.
 
 AItero does not read, parse, copy, serialize, or log Codex access or refresh tokens. It does not inspect `~/.codex/auth.json` or the operating-system keychain. Codex remains the credential owner, and uninstalling AItero does not log the user out of Codex.
 
@@ -97,10 +65,10 @@ Also inspect staged changes and the XPI file list:
 
 ```sh
 git diff --cached
-unzip -l dist/aitero-assistant-0.3.1.xpi
+unzip -l dist/aitero-assistant-0.4.0.xpi
 ```
 
-Never run commands that print `OPENAI_API_KEY`. If a key appears in Git history or a Release asset, revoke it immediately, create a new key, remove the affected artifact, and treat the old key as compromised.
+Never print or log credentials. If a credential appears in Git history or a Release asset, revoke it immediately and treat the old credential as compromised.
 
 ## OpenAI data flow
 
@@ -109,16 +77,15 @@ AItero sends data only after the user presses **Send** or the submit shortcut. T
 - the user's question;
 - the full extracted text of the active PDF when it fits the local context cap;
 - selected excerpts from oversized PDFs;
-- successful previous turns in the same panel session; and
-- a random per-profile safety identifier for API-key requests only.
+- successful previous turns in the same panel session.
 
-API-key requests use `store: false`. Codex requests use ephemeral App Server threads, request no local transcript history or memory generation, and unsubscribe when the turn ends. These settings are not equivalent to organization-level Zero Data Retention or Modified Abuse Monitoring. The selected OpenAI account controls the applicable policy.
+Codex requests use ephemeral App Server threads, request no local transcript history or memory generation, and unsubscribe when the turn ends. These settings are not equivalent to organization-level Zero Data Retention or Modified Abuse Monitoring. The selected OpenAI account controls the applicable policy.
 
 When useful, Codex may send model-generated web-search queries. The developer instruction prohibits verbatim PDF excerpts, chunk IDs, local paths, personal identifiers, and confidential paper details in those queries, but this is a model-level mitigation rather than a deterministic data-loss-prevention filter. Do not send sensitive papers if this exposure is unacceptable.
 
 Parallel research agents receive only prompts delegated by the parent model. They remain inside the same Codex session tree and inherit the parent's read-only sandbox. Their use can increase token consumption.
 
-The Codex provider fixes the parent and default subagents to GPT-6 Astra with xhigh reasoning and fast service tier. The API-key provider uses the same defaults unless `OPENAI_MODEL` overrides the model. Fast mode and parallel delegation affect usage; see the official [model documentation](https://developers.openai.com/api/docs/models/gpt-6-astra) for current details.
+Initial model settings inherit the local Codex configuration without model, effort, or speed overrides. Explicit choices made in the model picker are saved in Zotero preferences and applied to subsequent turns, including research-agent model and effort defaults. Fast mode and parallel delegation can increase usage.
 
 Do not test with confidential PDFs unless the account policy, document owner, and intended processing all permit the transfer.
 
@@ -152,14 +119,6 @@ Web search and subagent collaboration are the only active agent tools AItero per
 - External Markdown links are restricted to HTTPS and require an explicit click.
 
 ## Network behavior
-
-The API-key provider communicates directly with the OpenAI Responses endpoint using Zotero's window `fetch` implementation. Requests use:
-
-- `credentials: "omit"`;
-- `cache: "no-store"`;
-- `redirect: "error"`;
-- `stream: true`; and
-- `store: false`.
 
 AItero does not use an OpenAI SDK, analytics service, CDN, or local listening port. The Codex provider starts a local stdio App Server subprocess, which communicates with OpenAI under Codex's own account and data controls. App Server analytics are disabled by default unless the user's Codex configuration explicitly enables them.
 

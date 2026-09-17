@@ -1,16 +1,13 @@
 var AIteroCodex = (() => {
 	"use strict";
 
-	const OpenAI = typeof AIteroOpenAI !== "undefined"
-		? AIteroOpenAI
-		: (typeof module !== "undefined" ? require("./openai.js") : null);
+	const Session = typeof AIteroSession !== "undefined"
+		? AIteroSession
+		: (typeof module !== "undefined" ? require("./session.js") : null);
 	const DEFAULT_REQUEST_TIMEOUT_MS = 30000;
 	const DEFAULT_INACTIVITY_TIMEOUT_MS = 180000;
 	const LOGIN_TIMEOUT_MS = 300000;
 	const MAX_PROTOCOL_LINE_LENGTH = 16 * 1024 * 1024;
-	const DEFAULT_CODEX_MODEL = "gpt-6-astra";
-	const DEFAULT_CODEX_REASONING_EFFORT = "xhigh";
-	const DEFAULT_CODEX_SERVICE_TIER = "fast";
 	const APP_SERVER_ARGUMENTS = [
 		"app-server",
 		"-c", "features.apps=false",
@@ -40,13 +37,13 @@ var AIteroCodex = (() => {
 		"userMessage",
 	]);
 	function configurationError(message, code) {
-		let error = new OpenAI.OpenAIConfigurationError(message);
+		let error = new Session.ConfigurationError(message);
 		error.code = code;
 		return error;
 	}
 
 	function protocolError(message, properties = {}) {
-		return new OpenAI.OpenAIProtocolError(message, properties);
+		return new Session.ProtocolError(message, properties);
 	}
 
 	function makeResponse(text) {
@@ -93,18 +90,22 @@ var AIteroCodex = (() => {
 			? `Web search is available. Use it only when current or outside information materially improves the answer. Never put verbatim PDF excerpts, chunk IDs, local paths, personal identifiers, or confidential paper details into a search query. Clearly distinguish web-sourced claims from paper-grounded claims and provide normal Markdown links to web sources.`
 			: "Web search is disabled. Do not attempt to search the web.";
 		let agents = enableParallelAgents
-			? `Parallel research agents are available, with at most three children at once. Delegate only genuinely separable research or analysis lanes, wait for all useful children, and synthesize their results. Spawn children without model or reasoning-effort overrides so they inherit the configured ${DEFAULT_CODEX_MODEL} ${DEFAULT_CODEX_REASONING_EFFORT} defaults. Children share the same read-only and tool restrictions as this turn.`
+			? `Parallel research agents are available, with at most three children at once. Delegate only genuinely separable research or analysis lanes, wait for all useful children, and synthesize their results. Spawn children without model or reasoning-effort overrides so they inherit the active Codex configuration. Children share the same read-only and tool restrictions as this turn.`
 			: "Parallel research agents are disabled. Do not attempt to spawn or message subagents.";
 		return `${web}\n${agents}\nShell commands, local file reads, local file writes, code execution, MCP tools, connectors, image tools, and approval requests are forbidden. Do not attempt to use them.`;
 	}
 
-	function threadConfig({ enableWebSearch, enableParallelAgents }) {
+	function threadConfig({
+		enableWebSearch, enableParallelAgents,
+		model, reasoningEffort, serviceTier,
+	}) {
 		return {
+			...(reasoningEffort ? { model_reasoning_effort: reasoningEffort } : {}),
 			agents: {
 				enabled: Boolean(enableParallelAgents),
 				max_concurrent_threads_per_session: 3,
-				default_subagent_model: DEFAULT_CODEX_MODEL,
-				default_subagent_reasoning_effort: DEFAULT_CODEX_REASONING_EFFORT,
+				...(model ? { default_subagent_model: model } : {}),
+				...(reasoningEffort ? { default_subagent_reasoning_effort: reasoningEffort } : {}),
 			},
 			features: {
 				apps: false,
@@ -119,7 +120,7 @@ var AIteroCodex = (() => {
 				unified_exec: false,
 				skill_mcp_dependency_install: false,
 				view_image: false,
-				fast_mode: true,
+				...(serviceTier ? { fast_mode: serviceTier === "fast" || serviceTier === "priority" } : {}),
 			},
 			web_search: enableWebSearch ? "live" : "disabled",
 			mcp_servers: {},
@@ -154,17 +155,16 @@ var AIteroCodex = (() => {
 		let info = turn?.error?.codexErrorInfo;
 		let code = typeof info === "string" ? info : "";
 		let message = String(turn?.error?.message || turn?.error?.additionalDetails || "").trim();
-		if (status === "interrupted") return new OpenAI.OpenAICancelledError();
+		if (status === "interrupted") return new Session.CancelledError();
 		if (code === "unauthorized") {
-			return configurationError("Codex sign-in is required.", "codex-auth-required");
+			return configurationError("Sign in to Codex with ChatGPT to use AItero.", "codex-auth-required");
 		}
 		if (code === "usageLimitExceeded") {
-			return new OpenAI.OpenAIHTTPError(message || "Codex usage limit reached.", {
-				status: 429,
+			return new Session.UsageLimitError(message || "Codex usage limit reached.", {
 				code,
 			});
 		}
-		return new OpenAI.OpenAIResponseFailedError(
+		return new Session.ResponseFailedError(
 			message || "The Codex turn failed.",
 			{ code: code || "codex-turn-failed" },
 		);
@@ -307,7 +307,7 @@ var AIteroCodex = (() => {
 		}
 
 		async connect() {
-			if (this.closed) throw new OpenAI.OpenAINetworkError("The Codex App Server is closed.");
+			if (this.closed) throw new Session.NetworkError("The Codex App Server is closed.");
 			if (this.process) return;
 			if (!this.connectPromise) this.connectPromise = this._connect();
 			try {
@@ -353,7 +353,7 @@ var AIteroCodex = (() => {
 			let responsePromise = new Promise((resolve, reject) => {
 				let timer = this.setTimeoutImpl(() => {
 					this.pending.delete(id);
-					reject(new OpenAI.OpenAITimeoutError({ code: "codex-request-timeout" }));
+					reject(new Session.TimeoutError({ code: "codex-request-timeout" }));
 				}, timeoutMs);
 				this.pending.set(id, { resolve, reject, timer });
 			});
@@ -373,13 +373,13 @@ var AIteroCodex = (() => {
 
 		async _write(message) {
 			if (!this.process?.stdin || this.closed) {
-				throw new OpenAI.OpenAINetworkError("The Codex App Server is not connected.");
+				throw new Session.NetworkError("The Codex App Server is not connected.");
 			}
 			try {
 				await this.process.stdin.write(`${JSON.stringify(message)}\n`);
 			}
 			catch (_error) {
-				throw new OpenAI.OpenAINetworkError("Could not write to the Codex App Server.");
+				throw new Session.NetworkError("Could not write to the Codex App Server.");
 			}
 		}
 
@@ -391,13 +391,13 @@ var AIteroCodex = (() => {
 					for (let message of this.parser.feed(chunk)) this._handleMessage(message);
 				}
 				for (let message of this.parser.finish()) this._handleMessage(message);
-				if (!this.closed) this._handleClose(new OpenAI.OpenAINetworkError(
+				if (!this.closed) this._handleClose(new Session.NetworkError(
 					"The Codex App Server exited unexpectedly.",
 				));
 			}
 			catch (error) {
 				if (!this.closed) this._handleClose(
-					error?.kind ? error : new OpenAI.OpenAINetworkError(
+					error?.kind ? error : new Session.NetworkError(
 						"The Codex App Server connection failed.",
 					),
 				);
@@ -493,7 +493,7 @@ var AIteroCodex = (() => {
 		}
 
 		async close() {
-			if (!this.closed) this._handleClose(new OpenAI.OpenAICancelledError());
+			if (!this.closed) this._handleClose(new Session.CancelledError());
 			try {
 				await this.process?.kill?.();
 			}
@@ -540,7 +540,42 @@ var AIteroCodex = (() => {
 			let result = await connection.request("account/read", { refreshToken: false });
 			return {
 				available: true,
-				authenticated: Boolean(result?.account),
+				authenticated: result?.account?.type === "chatgpt",
+			};
+		}
+
+		async getModels() {
+			let connection = this._getConnection();
+			let models = [];
+			let cursor = null;
+			let seen = new Set();
+			do {
+				let result = await connection.request("model/list", {
+					limit: 100,
+					includeHidden: false,
+					...(cursor ? { cursor } : {}),
+				});
+				models.push(...(Array.isArray(result?.data) ? result.data : []));
+				cursor = result?.nextCursor;
+				if (cursor && seen.has(cursor)) throw protocolError("Codex repeated a model-list cursor.");
+				if (cursor) seen.add(cursor);
+			} while (cursor);
+			return models;
+		}
+
+		async getModelDefaults() {
+			let connection = this._getConnection();
+			let result = await connection.request("config/read", {
+				includeLayers: false,
+				cwd: connection.workdir,
+			});
+			// This is display-only. Omit request overrides to let Codex resolve all
+			// effective defaults itself, including future config options and models.
+			let config = result?.config;
+			return {
+				model: typeof config?.model === "string" ? config.model : null,
+				effort: typeof config?.model_reasoning_effort === "string" ? config.model_reasoning_effort : null,
+				serviceTier: typeof config?.service_tier === "string" ? config.service_tier : null,
 			};
 		}
 
@@ -582,7 +617,7 @@ var AIteroCodex = (() => {
 				let cleanup = () => {};
 				let timer = this.setTimeoutImpl(() => {
 					cleanup();
-					reject(new OpenAI.OpenAITimeoutError({ code: "codex-login-timeout" }));
+					reject(new Session.TimeoutError({ code: "codex-login-timeout" }));
 				}, timeoutMs);
 				let unsubscribe = connection.onNotification((receivedMethod, params) => {
 					if (receivedMethod !== method || !predicate(params)) return;
@@ -602,7 +637,9 @@ var AIteroCodex = (() => {
 		}
 
 		async streamResponse({
-			model = DEFAULT_CODEX_MODEL,
+			model,
+			reasoningEffort,
+			serviceTier,
 			instructions,
 			input,
 			signal,
@@ -612,13 +649,13 @@ var AIteroCodex = (() => {
 			enableParallelAgents = true,
 			inactivityTimeoutMs = DEFAULT_INACTIVITY_TIMEOUT_MS,
 		}) {
-			if (signal?.aborted) throw new OpenAI.OpenAICancelledError();
+			if (signal?.aborted) throw new Session.CancelledError();
 			let connection = this._getConnection();
 			let status = await this.getStatus();
 			if (!status.authenticated) {
-				throw configurationError("Codex sign-in is required.", "codex-auth-required");
+				throw configurationError("Sign in to Codex with ChatGPT to use AItero.", "codex-auth-required");
 			}
-			let policy = { enableWebSearch, enableParallelAgents };
+			let policy = { enableWebSearch, enableParallelAgents, model, reasoningEffort, serviceTier };
 			let thread = null;
 			let turnId = null;
 			let streamed = "";
@@ -637,7 +674,7 @@ var AIteroCodex = (() => {
 					if (settled) return;
 					settled = true;
 					void this._interrupt(connection, thread?.id, turnId);
-					rejectDone(new OpenAI.OpenAITimeoutError({ code: "codex-inactivity-timeout" }));
+					rejectDone(new Session.TimeoutError({ code: "codex-inactivity-timeout" }));
 				}, inactivityTimeoutMs);
 			};
 			let fail = error => {
@@ -688,18 +725,19 @@ var AIteroCodex = (() => {
 				}
 			});
 			let removeClose = connection.onClose?.(fail) ?? (() => {});
-			let abort = () => fail(new OpenAI.OpenAICancelledError());
+			let abort = () => fail(new Session.CancelledError());
 			signal?.addEventListener?.("abort", abort, { once: true });
 
 			try {
 				let started = await connection.request("thread/start", {
-					model,
+					...(model ? { model } : {}),
+					modelProvider: "openai",
 					cwd: connection.workdir,
 					approvalPolicy: "never",
 					sandbox: "read-only",
 					ephemeral: true,
 					serviceName: "aitero-assistant",
-					serviceTier: DEFAULT_CODEX_SERVICE_TIER,
+					...(serviceTier ? { serviceTier } : {}),
 					developerInstructions: `${instructions}\n${toolPolicyInstructions(policy)}`,
 					config: threadConfig(policy),
 				});
@@ -707,13 +745,13 @@ var AIteroCodex = (() => {
 				if (!thread?.id || thread.ephemeral !== true) {
 					throw protocolError("Codex did not create the required ephemeral thread.");
 				}
-				if (signal?.aborted) throw new OpenAI.OpenAICancelledError();
+				if (signal?.aborted) throw new Session.CancelledError();
 				resetInactivity();
 				let startedTurn = await connection.request("turn/start", {
 					threadId: thread.id,
 					input: [{ type: "text", text: formatInput(input) }],
-					effort: DEFAULT_CODEX_REASONING_EFFORT,
-					serviceTier: DEFAULT_CODEX_SERVICE_TIER,
+					...(reasoningEffort ? { effort: reasoningEffort } : {}),
+					...(serviceTier ? { serviceTier } : {}),
 					sandboxPolicy: { type: "readOnly", networkAccess: false },
 				});
 				turnId = startedTurn?.turn?.id;
@@ -781,11 +819,10 @@ var AIteroCodex = (() => {
 	}
 
 	return {
-		DEFAULT_CODEX_MODEL,
-		DEFAULT_CODEX_REASONING_EFFORT,
-		DEFAULT_CODEX_SERVICE_TIER,
 		configure,
 		getStatus: (...args) => client().getStatus(...args),
+		getModels: (...args) => client().getModels(...args),
+		getModelDefaults: (...args) => client().getModelDefaults(...args),
 		login: (...args) => client().login(...args),
 		streamResponse: (...args) => client().streamResponse(...args),
 		shutdown,
@@ -801,9 +838,6 @@ var AIteroCodex = (() => {
 			finalAgentText,
 			makeResponse,
 			APP_SERVER_ARGUMENTS,
-			DEFAULT_CODEX_MODEL,
-			DEFAULT_CODEX_REASONING_EFFORT,
-			DEFAULT_CODEX_SERVICE_TIER,
 		},
 	};
 })();

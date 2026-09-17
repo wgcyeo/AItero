@@ -1,6 +1,6 @@
 {
   "name": "aitero-assistant",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "private": true,
   "license": "Apache-2.0",
   "description": "A local AI assistant plugin for Zotero",
@@ -12,7 +12,6 @@
   "scripts": {
     "test": "node --test tests/*.test.js",
     "check:english": "node scripts/check-english.mjs",
-    "check:config": "node scripts/check-openai-config.mjs",
     "verify": "npm run check:english && npm test && npm run package",
     "vendor": "node scripts/vendor.mjs",
     "package": "npm run vendor --silent && node scripts/package.mjs",
@@ -23,5 +22,8 @@
   },
   "dependencies": {
     "katex": "0.18.4"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
   }
 }

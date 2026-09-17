@@ -26,7 +26,7 @@ npm run verify
 - Keep commits focused and reviewable.
 - Use imperative commit subjects.
 - Do not combine unrelated refactoring with a behavior change.
-- Never commit an API key, `.env` file, Zotero profile, Zotero database, downloaded private PDF, or generated XPI.
+- Never commit a credential, `.env` file, Zotero profile, Zotero database, downloaded private PDF, or generated XPI.
 
 Example:
 
@@ -64,27 +64,26 @@ Tests must remain deterministic and network-free. The suite covers:
 - page-local overlapping chunks;
 - BM25 and broad-query retrieval caps;
 - citation-ID allowlisting;
-- SSE byte splitting, CRLF/LF handling, and terminal events;
 - exactly-once history commit;
 - cancellation and failure history invariants;
-- API-key redaction;
 - Codex JSONL framing, browser-login delegation, and ephemeral turn policy;
 - always-available, model-invoked web search and parallel agents with blocked-tool fail-closed behavior;
 - UI scrolling and safe Markdown structure;
 - local untrusted KaTeX rendering; and
-- literal shell-config parsing.
+- model selection, saved settings, and ChatGPT-only authentication.
 
-Do not use a live OpenAI key in unit tests. Live smoke tests belong in an isolated Zotero profile and must use a public document.
+Live smoke tests belong in an isolated Zotero profile and must use a public document.
 
 ## Code boundaries
 
 Keep responsibilities separated:
 
 - `src/content/pdf.js` — pure PDF page, chunk, retrieval, cache, and citation logic;
-- `src/content/openai.js` — request construction, SSE parsing, typed errors, and history transactions;
+- `src/content/session.js` — typed errors and in-memory conversation transactions;
 - `src/content/codex.js` — Codex App Server lifecycle, authentication delegation, JSONL protocol, and agent-tool policy;
 - `src/content/compat.js` — validated internal PDF and Reader adapters;
-- `src/content/assistant.js` — Zotero UI, lifecycle, credential discovery, and orchestration;
+- `src/content/assistant.js` — Zotero UI, lifecycle, sign-in status, and orchestration;
+- `src/content/model-picker.js` — model catalogs, supported settings, and the sequential selection UI;
 - `src/content/style.css` — pane layout and rendering styles; and
 - `src/locale/en-US/aitero.ftl` — UI strings.
 
@@ -103,7 +102,7 @@ Changes must not write to Zotero library content. Do not add calls that save or 
 - annotations; or
 - sync state.
 
-The only persistent plugin-owned value is the random non-secret `safety_identifier`. Uninstall also clears legacy non-secret provider/tool preferences from earlier development builds.
+Persistent plugin-owned values are non-secret model, effort, and speed selections. Uninstall clears the entire plugin preference branch, including legacy preferences.
 
 ## UI changes
 
@@ -120,24 +119,13 @@ UI changes must preserve:
 
 Add or update source-level UI tests for structural invariants that cannot be exercised in Node DOM tests.
 
-## OpenAI changes
+## Codex changes
+
+Never serialize or log credentials, paper excerpts, or complete request bodies.
 
 Preserve unless a reviewed change explicitly requires otherwise:
 
-- the Responses endpoint;
-- `stream: true`;
-- `store: false`;
-- `credentials: "omit"`;
-- `redirect: "error"`;
-- no background mode;
-- no `previous_response_id`;
-- no automatic retry; and
-- commit only after `response.completed`.
-
-Never serialize or log keys, authorization headers, paper excerpts, or complete request bodies.
-
-For the Codex provider, preserve unless a reviewed change explicitly requires otherwise:
-
+- ChatGPT-only authentication before starting a turn;
 - authentication through App Server rather than direct token-file or keychain access;
 - an ephemeral thread per AItero request;
 - an empty temporary working directory;
@@ -153,9 +141,9 @@ Build the XPI twice before requesting review:
 
 ```sh
 npm run package
-cp dist/aitero-assistant-0.3.0.xpi /tmp/aitero-first.xpi
+cp dist/aitero-assistant-0.4.0.xpi /tmp/aitero-first.xpi
 npm run package
-cmp /tmp/aitero-first.xpi dist/aitero-assistant-0.3.0.xpi
+cmp /tmp/aitero-first.xpi dist/aitero-assistant-0.4.0.xpi
 ```
 
 The packaging script must continue to produce byte-identical output from identical source.
