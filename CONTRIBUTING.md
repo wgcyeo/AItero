@@ -1,6 +1,6 @@
 # Contributing to AItero
 
-This repository is private. Contributions should preserve the plugin's narrow read-only scope, Zotero 10-or-later compatibility, and local credential model.
+Contributions should preserve the plugin's narrow read-only scope, Zotero 10-or-later compatibility, and local credential model.
 
 ## Development environment
 
@@ -141,9 +141,9 @@ Build the XPI twice before requesting review:
 
 ```sh
 npm run package
-cp dist/aitero-assistant-0.4.0.xpi /tmp/aitero-first.xpi
+cp dist/aitero-assistant-1.0.0.xpi /tmp/aitero-first.xpi
 npm run package
-cmp /tmp/aitero-first.xpi dist/aitero-assistant-0.4.0.xpi
+cmp /tmp/aitero-first.xpi dist/aitero-assistant-1.0.0.xpi
 ```
 
 The packaging script must continue to produce byte-identical output from identical source.

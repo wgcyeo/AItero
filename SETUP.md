@@ -1,10 +1,10 @@
 # AItero Assistant Setup Guide
 
-This guide covers installation from a private GitHub Release, building from source, Codex ChatGPT sign-in, normal Dock/Finder launching, isolated-profile testing, upgrades, rollback, and troubleshooting.
+This guide covers installation from a GitHub Release, building from source, Codex ChatGPT sign-in, normal Dock/Finder launching, isolated-profile testing, upgrades, rollback, and troubleshooting.
 
 ## 1. Supported configuration
 
-AItero 0.4.0 requires Zotero 10 or later.
+AItero 1.0.0 requires Zotero 10 or later.
 
 | Component | Supported value |
 | --- | --- |
@@ -27,12 +27,12 @@ There are two supported paths.
 
 Use this path when you only want to run AItero.
 
-1. Open the private repository's **Releases** page while signed in to GitHub.
-2. Open release `v0.4.0`.
+1. Open the [Releases page](https://github.com/wgcyeo/AItero/releases).
+2. Open release `v1.0.0`.
 3. Download:
 
-   - `aitero-assistant-0.4.0.xpi`
-   - `aitero-assistant-0.4.0.xpi.sha256`
+   - `aitero-assistant-1.0.0.xpi`
+   - `aitero-assistant-1.0.0.xpi.sha256`
 
 4. Verify the XPI before installing it.
 
@@ -48,7 +48,7 @@ npm ci
 npm run verify
 ```
 
-The repository is private. The GitHub account used by `gh` must have access.
+The repository is public. You can also clone it with `git clone https://github.com/wgcyeo/AItero.git`.
 
 ## 3. Install or verify Zotero
 
@@ -131,8 +131,8 @@ From a source build:
 ```sh
 npm run package
 cd dist
-shasum -a 256 aitero-assistant-0.4.0.xpi
-cat aitero-assistant-0.4.0.xpi.sha256
+shasum -a 256 aitero-assistant-1.0.0.xpi
+cat aitero-assistant-1.0.0.xpi.sha256
 ```
 
 The two digests must match exactly.
@@ -141,23 +141,23 @@ For a downloaded Release asset, place the XPI and sidecar in the same directory 
 
 ```sh
 cd /path/to/downloads
-shasum -a 256 aitero-assistant-0.4.0.xpi
-cat aitero-assistant-0.4.0.xpi.sha256
+shasum -a 256 aitero-assistant-1.0.0.xpi
+cat aitero-assistant-1.0.0.xpi.sha256
 ```
 
 Do not install an XPI whose digest differs from the published sidecar.
 
 ## 8. Install the plugin in Zotero
 
-The XPI is locally built and unsigned. Install it only when it came from the private Release or a trusted source checkout.
+The XPI is locally built and unsigned. Install it only when it came from the official Release or a trusted source checkout.
 
 1. Fully close active PDF Reader tabs if they contain unsaved annotation edits.
 2. Open Zotero.
 3. Choose **Tools → Plugins**.
 4. Open the tools menu in the Plugins Manager.
 5. Choose **Install Plugin From File…**.
-6. Select `aitero-assistant-0.4.0.xpi`.
-7. Confirm that **AItero Assistant 0.4.0** appears and is enabled.
+6. Select `aitero-assistant-1.0.0.xpi`.
+7. Confirm that **AItero Assistant 1.0.0** appears and is enabled.
 8. Fully quit Zotero.
 9. Reopen Zotero normally.
 
@@ -250,9 +250,9 @@ When the model uses web search, Codex may additionally send generated search que
 
 ## 13. Upgrade procedure
 
-Private GitHub Release assets cannot be fetched automatically by Zotero without authentication. AItero 0.4.0 therefore uses manual updates.
+AItero 1.0.0 uses manual updates. Download the XPI from the public GitHub Release and install it through Zotero.
 
-1. Download the new XPI and checksum sidecar from the private Release.
+1. Download the new XPI and checksum sidecar from the official Release.
 2. Verify the checksum.
 3. Confirm that Codex is installed and signed in with ChatGPT.
 4. Open **Tools → Plugins**.

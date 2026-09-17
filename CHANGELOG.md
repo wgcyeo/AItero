@@ -4,7 +4,9 @@ All notable changes to AItero Assistant are documented here.
 
 The project follows semantic versioning for Release tags.
 
-## 0.4.0 - 2026-09-17
+## 1.0.0 - 2026-09-17
+
+First official release.
 
 ### Added
 
@@ -13,6 +15,7 @@ The project follows semantic versioning for Release tags.
 
 ### Changed
 
+- Update the bundled KaTeX dependency to 0.18.7.
 - Apply selected settings to Codex requests, including research-agent model and effort defaults.
 - Show model names without descriptions and keep Codex sign-in status concise.
 - Inherit Codex model, effort, and speed defaults on new installations; remove hardcoded model defaults and the bundled catalog.

@@ -1,6 +1,6 @@
 {
   "name": "aitero-assistant",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "private": true,
   "license": "Apache-2.0",
   "description": "A local AI assistant plugin for Zotero",

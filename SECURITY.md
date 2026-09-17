@@ -4,7 +4,7 @@
 
 | Version | Zotero | Security updates |
 | --- | --- | --- |
-| 0.4.0+ | 10.0 and later (validated on 10.0.2) | Supported |
+| 1.0.x | 10.0 and later (validated on 10.0.2) | Supported |
 | 0.3.x | 10.0 and later | Superseded |
 | 0.2.x | 9.0.x | Not supported |
 
@@ -33,7 +33,7 @@ If a log excerpt is required, redact authorization headers, credentials, documen
 
 ## Trust model
 
-A Zotero plugin runs with access to the Zotero application context. Installing an XPI grants it substantially more access than an ordinary website. Install AItero only from a verified private Release or a trusted source build.
+A Zotero plugin runs with access to the Zotero application context. Installing an XPI grants it substantially more access than an ordinary website. Install AItero only from a verified official Release or a trusted source build.
 
 AItero is designed as a read-only Zotero tool. It does not call APIs that save, modify, move, or delete Zotero items, notes, tags, collections, attachments, annotations, or sync state.
 
@@ -65,7 +65,7 @@ Also inspect staged changes and the XPI file list:
 
 ```sh
 git diff --cached
-unzip -l dist/aitero-assistant-0.4.0.xpi
+unzip -l dist/aitero-assistant-1.0.0.xpi
 ```
 
 Never print or log credentials. If a credential appears in Git history or a Release asset, revoke it immediately and treat the old credential as compromised.
@@ -131,4 +131,4 @@ AItero does not use an OpenAI SDK, analytics service, CDN, or local listening po
 - Release artifacts are built from the tagged commit.
 - The Release workflow builds twice and requires byte-identical XPI output.
 - Every XPI has a SHA-256 sidecar.
-- The repository remains private unless the owner explicitly changes visibility.
+- Release assets are public; review their contents before publishing.

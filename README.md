@@ -7,7 +7,7 @@ The plugin does not modify Zotero items, notes, tags, collections, attachments, 
 ## At a glance
 
 - Plugin ID: `aitero-assistant@local`
-- Version: `0.4.0`
+- Version: `1.0.0` (first official release)
 - License: Apache-2.0
 - Supported Zotero versions: `10.0` and later
 - Validated platform: macOS with the Homebrew `zotero` cask
@@ -39,10 +39,10 @@ The plugin does not modify Zotero items, notes, tags, collections, attachments, 
 
 For complete installation, privacy, development, and troubleshooting instructions, read [SETUP.md](SETUP.md).
 
-1. Download both assets from the private GitHub Release:
+1. Download both assets from the [latest GitHub Release](https://github.com/wgcyeo/AItero/releases/latest):
 
-   - `aitero-assistant-0.4.0.xpi`
-   - `aitero-assistant-0.4.0.xpi.sha256`
+   - `aitero-assistant-1.0.0.xpi`
+   - `aitero-assistant-1.0.0.xpi.sha256`
 
 2. Install the Codex CLI and sign in with ChatGPT using `codex login`, or complete **Sign in to Codex** from the AItero panel.
 
@@ -99,13 +99,13 @@ These request settings are not equivalent to organization-level Zero Data Retent
 7. A lexical no-match still selects distributed pages, so a cross-language question never produces an empty paper context.
 8. Only citations to chunks included in the request can become buttons. Invented IDs remain plain text.
 
-`[PDF N]` refers to the one-based PDF file page number, not a printed page label. AItero navigates using Zotero's zero-based `pageIndex`. Paragraph-level highlighting is outside the v0.4.0 scope.
+`[PDF N]` refers to the one-based PDF file page number, not a printed page label. AItero navigates using Zotero's zero-based `pageIndex`. Paragraph-level highlighting is outside the v1.0.0 scope.
 
 Image-only PDFs are not sent to OpenAI. AItero displays an OCR-required message instead. Partially extractable PDFs use only pages with text and display a coverage warning.
 
 ## Limitations
 
-Version 0.4.0 intentionally does not provide:
+Version 1.0.0 intentionally does not provide:
 
 - multi-paper comparison;
 - whole-library retrieval;
@@ -114,7 +114,7 @@ Version 0.4.0 intentionally does not provide:
 - Zotero note creation;
 - printed-page-label mapping;
 - paragraph highlighting; or
-- automatic updates from the private repository.
+- automatic plugin updates.
 
 The manifest permits Zotero 10 and later without an upper version cap. The PDF compatibility adapter checks the returned page counts and rejects results that cannot be mapped to exact pages. Zotero 10.0.2 is the validated runtime; later versions are permitted but require integration testing when their internal APIs change. Zotero recommends [validating each major release](https://www.zotero.org/support/dev/zotero_10_for_developers#updating_plugin_compatibility), so an open-ended manifest is not a guarantee of future compatibility.
 
@@ -132,8 +132,8 @@ The packaging script sorts source paths and fixes ZIP timestamps, permissions, U
 Generated files:
 
 ```text
-dist/aitero-assistant-0.4.0.xpi
-dist/aitero-assistant-0.4.0.xpi.sha256
+dist/aitero-assistant-1.0.0.xpi
+dist/aitero-assistant-1.0.0.xpi.sha256
 ```
 
 ## Documentation
