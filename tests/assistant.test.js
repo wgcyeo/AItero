@@ -5,7 +5,7 @@ const path = require("node:path");
 
 global.AIteroPDF = require("../src/content/pdf.js");
 global.AIteroCompat = {};
-global.AIteroOpenAI = {};
+global.AIteroSession = {};
 
 const assistant = require("../src/content/assistant.js");
 
@@ -52,7 +52,6 @@ test("system instructions isolate untrusted paper text and require opaque citati
 	assert.match(instructions, /Never invent/);
 	assert.match(instructions, /same language/i);
 	assert.match(instructions, /Markdown links/);
-	assert.doesNotMatch(instructions, /OPENAI_API_KEY/);
 });
 
 test("external model links are limited to HTTPS URLs", () => {
@@ -63,33 +62,16 @@ test("external model links are limited to HTTPS URLs", () => {
 	assert.equal(safeExternalURL("not a URL"), "");
 });
 
-test("Codex is selected automatically and the API key is fallback-only", async () => {
-	const { resolveProvider } = assistant._test;
-	let apiChecks = 0;
-	const codex = await resolveProvider({
-		getCodexStatus: async () => ({ available: true, authenticated: true }),
-		hasApiKeyImpl: async () => {
-			apiChecks++;
-			return true;
-		},
-	});
-	assert.equal(codex.provider, "codex");
-	assert.equal(apiChecks, 0);
-
-	const fallback = await resolveProvider({
-		getCodexStatus: async () => ({ available: true, authenticated: false }),
-		hasApiKeyImpl: async () => true,
-	});
-	assert.equal(fallback.provider, "api");
-	assert.equal(fallback.codexAvailable, true);
-
-	const unavailable = await resolveProvider({
-		getCodexStatus: async () => {
-			throw new Error("not installed");
-		},
-		hasApiKeyImpl: async () => false,
-	});
-	assert.equal(unavailable.provider, null);
+test("Codex status distinguishes signed-in, signed-out, and unavailable states", async () => {
+	const { resolveCodexStatus } = assistant._test;
+	for (const authenticated of [true, false]) {
+		assert.deepEqual(await resolveCodexStatus({
+			getCodexStatus: async () => ({ available: true, authenticated }),
+		}), { available: true, authenticated });
+	}
+	const unavailable = await resolveCodexStatus({ getCodexStatus: async () => { throw new Error("not installed"); } });
+	assert.equal(unavailable.available, false);
+	assert.equal(unavailable.authenticated, false);
 });
 
 test("the composer has no provider selector or research-tool checkboxes", () => {
@@ -131,30 +113,6 @@ test("context hints change immediately when the selected item or reader tab chan
 	);
 });
 
-test("shell config parsing accepts only literal API configuration assignments", () => {
-	const { parseStaticShellAssignment } = assistant._test;
-	assert.equal(
-		parseStaticShellAssignment("export OPENAI_API_KEY='sk-project_literal'", "OPENAI_API_KEY"),
-		"sk-project_literal",
-	);
-	assert.equal(
-		parseStaticShellAssignment('OPENAI_MODEL="gpt-5.6-luna"', "OPENAI_MODEL"),
-		"gpt-5.6-luna",
-	);
-	assert.equal(
-		parseStaticShellAssignment("export OPENAI_API_KEY=$(security find-generic-password -w)", "OPENAI_API_KEY"),
-		"",
-	);
-	assert.equal(
-		parseStaticShellAssignment("export OPENAI_API_KEY=$OTHER_SECRET", "OPENAI_API_KEY"),
-		"",
-	);
-	assert.equal(
-		parseStaticShellAssignment("export UNRELATED='sk-ignore'", "OPENAI_API_KEY"),
-		"",
-	);
-});
-
 test("library selection signatures are stable across row ordering but detect scope changes", () => {
 	const { selectionSignature } = assistant._test;
 	const win = {
@@ -175,7 +133,7 @@ test("pane Fluent messages localize attributes without replacing the custom body
 	assert.match(ftl, /aitero-pane-header\s*=\s*\n\s+\.label\s*=/);
 	assert.match(ftl, /aitero-pane-sidenav\s*=\s*\n\s+\.tooltiptext\s*=/);
 	assert.match(ftl, /^aitero-pane-header[ \t]*=[ \t]*$/m);
-	assert.match(ftl, /aitero-ready-codex\s*=\s*Ready · Codex · gpt-6-astra \(xhigh, fast\)/);
+	assert.match(ftl, /^aitero-ready-codex = Ready · Codex$/m);
 });
 
 test("safe markdown blocks recognize headings, lists, tables, code, and paragraphs", () => {
@@ -368,16 +326,15 @@ test("math rendering is bundled, resource-local, and treats model TeX as untrust
 	assert.doesNotMatch(source, /https?:\/\/[^`"']*katex/i);
 });
 
-test("bootstrap loads Codex before the assistant and clears non-secret provider preferences", () => {
+test("bootstrap loads the session and Codex modules before the assistant and clears plugin preferences", () => {
 	const source = fs.readFileSync(
 		path.join(__dirname, "..", "src", "bootstrap.js"),
 		"utf8",
 	);
 	assert.ok(source.indexOf("content/codex.js") < source.indexOf("content/assistant.js"));
 	assert.match(source, /AIteroCodex\.configure\(\{ version \}\)/);
-	assert.match(source, /extensions\.aitero-assistant\.provider/);
-	assert.match(source, /extensions\.aitero-assistant\.webSearch/);
-	assert.match(source, /extensions\.aitero-assistant\.parallelAgents/);
+	assert.match(source, /deleteBranch\("extensions\.aitero-assistant\."\)/);
+	assert.ok(source.indexOf("content/session.js") < source.indexOf("content/codex.js"));
 });
 
 test("release metadata declares Apache-2.0 and packages the project license", () => {

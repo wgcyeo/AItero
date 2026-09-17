@@ -13,8 +13,9 @@ async function startup({ id, version, rootURI }) {
 	await Zotero.initializationPromise;
 	Services.scriptloader.loadSubScript(`${rootURI}content/pdf.js`);
 	Services.scriptloader.loadSubScript(`${rootURI}content/compat.js`);
-	Services.scriptloader.loadSubScript(`${rootURI}content/openai.js`);
+	Services.scriptloader.loadSubScript(`${rootURI}content/session.js`);
 	Services.scriptloader.loadSubScript(`${rootURI}content/codex.js`);
+	Services.scriptloader.loadSubScript(`${rootURI}content/model-picker.js`);
 	Services.scriptloader.loadSubScript(`${rootURI}content/assistant.js`);
 
 	AIteroCodex.configure({ version });
@@ -40,18 +41,6 @@ async function shutdown() {
 }
 
 function uninstall() {
-	for (let name of [
-		"extensions.aitero-assistant.safetyIdentifier",
-		"extensions.aitero-assistant.provider",
-		"extensions.aitero-assistant.webSearch",
-		"extensions.aitero-assistant.parallelAgents",
-	]) {
-		try {
-			Services.prefs.clearUserPref(name);
-		}
-		catch (_error) {
-			// The preference does not exist.
-		}
-	}
+	Services.prefs.deleteBranch("extensions.aitero-assistant.");
 	log("uninstalled");
 }
