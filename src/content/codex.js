@@ -228,6 +228,10 @@ var AIteroCodex = (() => {
 			configured,
 			"/opt/homebrew/bin/codex",
 			"/usr/local/bin/codex",
+			// Codex installs this native executable for plugin/App Server integrations.
+			(typeof PathUtils !== "undefined" && PathUtils.homeDir)
+				? PathUtils.join(PathUtils.homeDir, ".codex/plugins/.plugin-appserver/codex")
+				: "",
 		].filter(Boolean);
 		for (let candidate of candidates) {
 			try {
@@ -837,6 +841,7 @@ var AIteroCodex = (() => {
 			itemAllowed,
 			finalAgentText,
 			makeResponse,
+			resolveCodexExecutable,
 			APP_SERVER_ARGUMENTS,
 		},
 	};

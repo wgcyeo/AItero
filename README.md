@@ -56,7 +56,7 @@ For complete installation, privacy, development, and troubleshooting instruction
 
 AItero uses Codex with ChatGPT sign-in exclusively. It asks App Server for account status and exposes its browser login flow when needed. It does not parse `~/.codex/auth.json`, copy access tokens, or store credentials in Zotero preferences. If Codex is unavailable or signed out, the panel explains how to install it or sign in before sending a question.
 
-Codex must be discoverable as `codex`, `/opt/homebrew/bin/codex`, `/usr/local/bin/codex`, or the absolute path in `CODEX_PATH`.
+Codex must be discoverable as `codex`, `/opt/homebrew/bin/codex`, `/usr/local/bin/codex`, the native App Server executable under `~/.codex/plugins/.plugin-appserver/codex`, or the absolute path in `CODEX_PATH`.
 
 Click the model name above the question field, choose a model, choose its reasoning effort, then choose **Standard** or **Fast**. Each click advances to the next step; the final speed choice applies and saves the selection. Use the step labels to go back, or press Escape to discard an unfinished selection. Changes apply to the next question without clearing the conversation.
 
