@@ -116,7 +116,8 @@ The plugin looks for Codex in this order:
 1. the absolute executable path in `CODEX_PATH`;
 2. `/opt/homebrew/bin/codex`;
 3. `/usr/local/bin/codex`; and
-4. `codex` on Zotero's inherited `PATH`.
+4. the native App Server executable under `~/.codex/plugins/.plugin-appserver/codex`; and
+5. `codex` on Zotero's inherited `PATH`.
 
 Codex requests run in fresh ephemeral App Server threads rooted at an empty temporary directory. The parent and its subagents use a read-only sandbox with no shell, file changes, MCP, connectors, image tools, or approval requests. These settings, including `approvalPolicy: "never"`, are sent by AItero on every request and do not depend on a particular machine's `~/.codex/config.toml`.
 
@@ -291,6 +292,7 @@ AItero does not modify the Zotero database, so there is no database migration or
 - On Apple Silicon Homebrew, confirm `/opt/homebrew/bin/codex` exists.
 - On Intel Homebrew, confirm `/usr/local/bin/codex` exists.
 - For another installation location, start Zotero with `CODEX_PATH` set to the absolute executable path.
+- AItero also checks Codex's native App Server executable under `~/.codex/plugins/.plugin-appserver/codex`, which is useful when Codex was installed through NVM and Zotero was launched from Finder.
 - Fully restart Zotero after installing or moving Codex.
 
 ### Codex sign-in is required

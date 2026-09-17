@@ -66,6 +66,41 @@ test("JSONL parsing handles split chunks and rejects incomplete records", () => 
 	assert.throws(() => incomplete.finish(), /incomplete JSON/i);
 });
 
+test("Codex discovery falls back to the native App Server installation", async () => {
+	const previous = {
+		PathUtils: global.PathUtils,
+		IOUtils: global.IOUtils,
+		Services: global.Services,
+	};
+	global.PathUtils = {
+		homeDir: "/Users/tester",
+		join: (...parts) => parts.join("/"),
+	};
+	global.IOUtils = {
+		exists: async path => path === "/Users/tester/.codex/plugins/.plugin-appserver/codex",
+	};
+	global.Services = {
+		env: {
+			exists: () => false,
+			get: () => "",
+		},
+	};
+	try {
+		const command = await codex._test.resolveCodexExecutable({
+			pathSearch: async () => {
+				throw new Error("not on Zotero PATH");
+			},
+		});
+		assert.equal(command, "/Users/tester/.codex/plugins/.plugin-appserver/codex");
+	}
+	finally {
+		for (const [key, value] of Object.entries(previous)) {
+			if (value === undefined) delete global[key];
+			else global[key] = value;
+		}
+	}
+});
+
 test("Codex input flattening preserves user and assistant turns", () => {
 	assert.equal(codex._test.formatInput([
 		{ role: "user", content: "Paper context" },
