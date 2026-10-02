@@ -21,7 +21,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "katex": "0.18.7"
+    "katex": "0.18.9"
   },
   "devDependencies": {
     "jsdom": "^26.1.0"
